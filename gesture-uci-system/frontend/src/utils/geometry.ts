@@ -292,7 +292,7 @@ export function isHandOpen(handLandmarks: HandLandmark[] | null): boolean {
     const baseToWrist = distance3D(base, wrist);
 
     // Si la punta está más lejos de la muñeca que la base, el dedo está extendido
-    if (tipToWrist > baseToWrist * 1.1) {
+    if (tipToWrist > baseToWrist * 1.05) {
       extendedFingers++;
     }
   }
@@ -303,12 +303,12 @@ export function isHandOpen(handLandmarks: HandLandmark[] | null): boolean {
   const thumbToWrist = distance3D(thumbTip, wrist);
   const thumbBaseToWrist = distance3D(thumbBase, wrist);
 
-  if (thumbToWrist > thumbBaseToWrist * 1.1) {
+  if (thumbToWrist > thumbBaseToWrist * 1.05) {
     extendedFingers++;
   }
 
-  // La mano está abierta si al menos 4 dedos están extendidos
-  return extendedFingers >= 4;
+  // La mano está abierta si al menos 3 dedos están extendidos (más permisivo)
+  return extendedFingers >= 3;
 }
 
 /**
