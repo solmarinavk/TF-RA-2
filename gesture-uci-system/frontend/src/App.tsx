@@ -6,8 +6,9 @@ import { UCI_KEYS } from './utils/constants';
 import { VirtualKeyboard } from './components/Keyboard/VirtualKeyboard';
 import { StateIndicator } from './components/UI/StateIndicator';
 import { CameraFeed } from './components/Camera/CameraFeed';
+import { LandmarksOverlay } from './components/Camera/LandmarksOverlay';
 import { useMediaPipe } from './hooks/useMediaPipe';
-import { usePoseDetection } from './hooks/usePoseDetection';
+import { useGestureDetection } from './hooks/useGestureDetection';
 import { useHandTracking } from './hooks/useHandTracking';
 
 function App() {
@@ -30,7 +31,7 @@ function App() {
   const { poseLandmarker, handLandmarker, isLoading, error, isReady } = useMediaPipe();
 
   // Hooks de detección
-  usePoseDetection(poseLandmarker, videoElement);
+  useGestureDetection(poseLandmarker, handLandmarker, videoElement);
   const { fingerPosition } = useHandTracking(handLandmarker, videoElement, canvasSize);
 
   // Actualizar tamaño de canvas en resize
@@ -88,6 +89,9 @@ function App() {
       {/* Video de cámara */}
       <CameraFeed onVideoReady={setVideoElement} />
 
+      {/* Overlay de landmarks (puntos detectados) */}
+      <LandmarksOverlay canvasSize={canvasSize} />
+
       {/* Título y logo */}
       <div className="fixed top-6 left-6 z-40">
         <h1 className="text-2xl font-black text-white drop-shadow-lg">
@@ -100,15 +104,18 @@ function App() {
       <StateIndicator state={systemState} />
 
       {/* Panel de instrucciones */}
-      <div className="fixed bottom-6 left-6 z-40 bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-lg p-4 text-white text-sm space-y-2">
+      <div className="fixed bottom-6 left-6 z-40 bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-lg p-4 text-white text-sm space-y-2 max-w-xs">
         <div className="font-bold mb-3">📖 Instrucciones:</div>
-        <div>✋ <strong>Brazo izquierdo en L</strong> - Iniciar grabación</div>
+        <div>🖐️ <strong>Brazo en L + palma abierta</strong> - Iniciar</div>
         <div>👉 <strong>Dedo índice</strong> - Apuntar a teclas</div>
-        <div>⏱️ <strong>Mantener 3 segundos</strong> - Confirmar selección</div>
-        <div>✋ <strong>Brazo derecho en L</strong> - Finalizar y analizar</div>
+        <div>⏱️ <strong>Mantener 3 segundos</strong> - Confirmar</div>
+        <div>✊ <strong>Brazo en L + puño</strong> - Finalizar</div>
         <div className="pt-2 border-t border-gray-700">
           <div className="text-xs text-gray-400">
             {isReady ? '✅ MediaPipe listo' : '⏳ Preparando...'}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            Los puntos de colores muestran detección en tiempo real
           </div>
         </div>
       </div>
@@ -116,7 +123,7 @@ function App() {
       {/* Panel de mensaje actual */}
       {systemState !== 'IDLE' && (
         <motion.div
-          className="fixed top-24 right-6 z-40 bg-gray-800 bg-opacity-95 backdrop-blur-sm rounded-lg p-6 text-white min-w-[300px] max-w-[400px]"
+          className="fixed top-6 right-6 z-40 bg-gray-800 bg-opacity-80 backdrop-blur-sm rounded-lg p-4 text-white min-w-[250px] max-w-[300px]"
           initial={{ x: 400, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.5, type: 'spring' }}

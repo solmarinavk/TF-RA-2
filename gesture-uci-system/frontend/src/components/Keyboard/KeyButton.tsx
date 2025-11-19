@@ -73,12 +73,12 @@ export const KeyButton: React.FC<KeyButtonProps> = ({
 
       {/* Círculo principal */}
       <div
-        className="relative rounded-full flex items-center justify-center font-bold text-white text-center shadow-2xl"
+        className="relative rounded-full flex items-center justify-center font-bold text-white text-center shadow-2xl backdrop-blur-sm"
         style={{
-          backgroundColor: keyNode.color,
+          backgroundColor: isHovered ? keyNode.color : `${keyNode.color}CC`,
           width: `${keyNode.radius * 2}px`,
           height: `${keyNode.radius * 2}px`,
-          border: isHovered ? '4px solid white' : '2px solid rgba(255,255,255,0.3)',
+          border: isHovered ? '4px solid white' : '3px solid rgba(255,255,255,0.4)',
           boxShadow: isHovered
             ? `0 0 30px ${keyNode.color}, 0 0 60px ${keyNode.color}80`
             : isProximate

@@ -14,10 +14,12 @@ interface AppState {
   updatePoseLandmarks: (landmarks: PoseLandmark[] | null) => void;
   updateHandLandmarks: (left: HandLandmark[] | null, right: HandLandmark[] | null) => void;
 
-  // === L-POSE DETECTION ===
-  leftLPoseStart: number | null;
-  rightLPoseStart: number | null;
-  updateLPoseState: (left: boolean, right: boolean) => void;
+  // === GESTURE DETECTION ===
+  openHandGestureStart: number | null;
+  closedHandGestureStart: number | null;
+  leftHandLandmarks: HandLandmark[] | null;
+  rightHandLandmarks: HandLandmark[] | null;
+  updateGestureState: (armInL: boolean, handOpen: boolean, handClosed: boolean) => void;
 
   // === SELECTION ===
   selectedKeys: string[];
@@ -52,8 +54,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   systemState: 'IDLE',
   poseLandmarks: null,
   handLandmarks: { left: null, right: null },
-  leftLPoseStart: null,
-  rightLPoseStart: null,
+  openHandGestureStart: null,
+  closedHandGestureStart: null,
+  leftHandLandmarks: null,
+  rightHandLandmarks: null,
   selectedKeys: [],
   hoveredKey: null,
   hoverStartTime: null,
@@ -75,37 +79,37 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ handLandmarks: { left, right } });
   },
 
-  updateLPoseState: (left: boolean, right: boolean) => {
+  updateGestureState: (armInL: boolean, handOpen: boolean, handClosed: boolean) => {
     const state = get();
     const now = Date.now();
 
-    // TRANSICIÓN: IDLE → RECORDING (brazo izquierdo en L)
-    if (state.systemState === 'IDLE' && left) {
-      if (state.leftLPoseStart === null) {
-        set({ leftLPoseStart: now });
-      } else if (now - state.leftLPoseStart >= L_POSE_DURATION) {
-        console.log('🎬 RECORDING STARTED - Left L-Pose detected');
+    // TRANSICIÓN: IDLE → RECORDING (brazo en L + palma abierta)
+    if (state.systemState === 'IDLE' && armInL && handOpen) {
+      if (state.openHandGestureStart === null) {
+        set({ openHandGestureStart: now });
+      } else if (now - state.openHandGestureStart >= L_POSE_DURATION) {
+        console.log('🎬 RECORDING STARTED - L-Pose + Open Hand detected');
         set({
           systemState: 'RECORDING',
-          leftLPoseStart: null,
+          openHandGestureStart: null,
           selectedKeys: [],
           currentMessage: [],
           graph: createInteractionGraph(UCI_KEYS.map(k => ({ ...k })))
         });
       }
-    } else if (!left) {
-      set({ leftLPoseStart: null });
+    } else if (!(armInL && handOpen)) {
+      set({ openHandGestureStart: null });
     }
 
-    // TRANSICIÓN: RECORDING → PROCESSING (brazo derecho en L)
-    if (state.systemState === 'RECORDING' && right) {
-      if (state.rightLPoseStart === null) {
-        set({ rightLPoseStart: now });
-      } else if (now - state.rightLPoseStart >= L_POSE_DURATION) {
-        console.log('⚙️ PROCESSING - Right L-Pose detected');
+    // TRANSICIÓN: RECORDING → PROCESSING (brazo en L + puño cerrado)
+    if (state.systemState === 'RECORDING' && armInL && handClosed) {
+      if (state.closedHandGestureStart === null) {
+        set({ closedHandGestureStart: now });
+      } else if (now - state.closedHandGestureStart >= L_POSE_DURATION) {
+        console.log('⚙️ PROCESSING - L-Pose + Closed Hand detected');
         set({
           systemState: 'PROCESSING',
-          rightLPoseStart: null,
+          closedHandGestureStart: null,
           hoveredKey: null,
           hoverProgress: 0
         });
@@ -118,8 +122,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           console.log('✅ DISPLAYING - Metrics calculated');
         }, 500);
       }
-    } else if (!right) {
-      set({ rightLPoseStart: null });
+    } else if (!(armInL && handClosed)) {
+      set({ closedHandGestureStart: null });
     }
   },
 
@@ -211,8 +215,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       hoverStartTime: null,
       hoverProgress: 0,
       currentMessage: [],
-      leftLPoseStart: null,
-      rightLPoseStart: null,
+      openHandGestureStart: null,
+      closedHandGestureStart: null,
       metrics: null
     });
   }

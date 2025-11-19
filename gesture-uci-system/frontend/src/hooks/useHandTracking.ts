@@ -58,9 +58,9 @@ export function useHandTracking(
             const fingerTip = getIndexFingerTip(handLandmarks);
 
             if (fingerTip && systemState === 'RECORDING') {
-              // Convertir a píxeles
+              // Convertir a píxeles (invertir X porque el video está espejado)
               const fingerPixels = {
-                x: fingerTip.x * canvasSize.width,
+                x: (1 - fingerTip.x) * canvasSize.width,
                 y: fingerTip.y * canvasSize.height
               };
 
