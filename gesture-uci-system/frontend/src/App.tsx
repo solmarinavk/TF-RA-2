@@ -2,31 +2,36 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import './styles/globals.css';
 import { useAppStore } from './store/useAppStore';
-import { UCI_KEYS, SELECTION_DURATION, HOVER_THRESHOLD } from './utils/constants';
+import { UCI_KEYS } from './utils/constants';
 import { VirtualKeyboard } from './components/Keyboard/VirtualKeyboard';
 import { StateIndicator } from './components/UI/StateIndicator';
-import { findClosestNode } from './utils/geometry';
+import { CameraFeed } from './components/Camera/CameraFeed';
+import { useMediaPipe } from './hooks/useMediaPipe';
+import { usePoseDetection } from './hooks/usePoseDetection';
+import { useHandTracking } from './hooks/useHandTracking';
 
 function App() {
   const {
     systemState,
     hoveredKey,
     hoverProgress,
-    hoverStartTime,
     currentMessage,
     selectedKeys,
     metrics,
     graph,
-    setHover,
-    updateHoverProgress,
-    addSelection,
-    setSystemState,
     resetSession
   } = useAppStore();
 
-  const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Inicializar MediaPipe
+  const { poseLandmarker, handLandmarker, isLoading, error, isReady } = useMediaPipe();
+
+  // Hooks de detección
+  usePoseDetection(poseLandmarker, videoElement);
+  const { fingerPosition } = useHandTracking(handLandmarker, videoElement, canvasSize);
 
   // Actualizar tamaño de canvas en resize
   useEffect(() => {
@@ -38,74 +43,10 @@ function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Tracking de mouse como simulación de dedo índice
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (systemState !== 'RECORDING') return;
-
-      const newPosition = { x: e.clientX, y: e.clientY };
-      setMousePosition(newPosition);
-
-      // Buscar tecla más cercana
-      const closest = findClosestNode(newPosition, UCI_KEYS, canvasSize, HOVER_THRESHOLD);
-      setHover(closest);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [systemState, canvasSize, setHover]);
-
-  // Progreso de hover
-  useEffect(() => {
-    if (!hoveredKey || !hoverStartTime || systemState !== 'RECORDING') {
-      updateHoverProgress(0);
-      return;
-    }
-
-    let animationFrame: number;
-
-    const updateProgress = () => {
-      const elapsed = Date.now() - hoverStartTime;
-      const progress = Math.min((elapsed / SELECTION_DURATION) * 100, 100);
-
-      updateHoverProgress(progress);
-
-      if (progress >= 100) {
-        // Selección completada!
-        addSelection(hoveredKey);
-      } else {
-        animationFrame = requestAnimationFrame(updateProgress);
-      }
-    };
-
-    animationFrame = requestAnimationFrame(updateProgress);
-
-    return () => cancelAnimationFrame(animationFrame);
-  }, [hoveredKey, hoverStartTime, systemState, updateHoverProgress, addSelection]);
-
-  // Controles de teclado para FSM
+  // Controles de teclado para FSM (fallback)
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       switch (e.key) {
-        case 'r':
-        case 'R':
-          if (systemState === 'IDLE') {
-            console.log('🎬 Starting RECORDING (keyboard)');
-            setSystemState('RECORDING');
-          }
-          break;
-        case 's':
-        case 'S':
-          if (systemState === 'RECORDING') {
-            console.log('⚙️ Starting PROCESSING (keyboard)');
-            setSystemState('PROCESSING');
-            setTimeout(() => {
-              useAppStore.getState().calculateMetrics();
-              useAppStore.getState().completeMessage();
-              setSystemState('DISPLAYING');
-            }, 500);
-          }
-          break;
         case 'Escape':
           resetSession();
           break;
@@ -114,10 +55,39 @@ function App() {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [systemState, setSystemState, resetSession]);
+  }, [resetSession]);
+
+  // Pantalla de carga
+  if (isLoading) {
+    return (
+      <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <div className="text-center">
+          <div className="text-6xl mb-4 animate-pulse">🤖</div>
+          <div className="text-white text-2xl font-bold mb-2">Cargando MediaPipe...</div>
+          <div className="text-gray-400">Inicializando detección de poses y manos</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Pantalla de error
+  if (error) {
+    return (
+      <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <div className="text-center">
+          <div className="text-6xl mb-4">❌</div>
+          <div className="text-white text-2xl font-bold mb-2">Error de Inicialización</div>
+          <div className="text-gray-400">{error}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={containerRef} className="relative w-screen h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      {/* Video de cámara */}
+      <CameraFeed onVideoReady={setVideoElement} />
+
       {/* Título y logo */}
       <div className="fixed top-6 left-6 z-40">
         <h1 className="text-2xl font-black text-white drop-shadow-lg">
@@ -129,14 +99,17 @@ function App() {
       {/* Indicador de estado */}
       <StateIndicator state={systemState} />
 
-      {/* Controles */}
+      {/* Panel de instrucciones */}
       <div className="fixed bottom-6 left-6 z-40 bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-lg p-4 text-white text-sm space-y-2">
-        <div className="font-bold mb-3">🎮 Controles Demo:</div>
-        <div><kbd className="bg-gray-700 px-2 py-1 rounded">R</kbd> - Iniciar grabación (IDLE → RECORDING)</div>
-        <div><kbd className="bg-gray-700 px-2 py-1 rounded">S</kbd> - Detener y analizar (RECORDING → PROCESSING)</div>
-        <div><kbd className="bg-gray-700 px-2 py-1 rounded">ESC</kbd> - Reset a IDLE</div>
+        <div className="font-bold mb-3">📖 Instrucciones:</div>
+        <div>✋ <strong>Brazo izquierdo en L</strong> - Iniciar grabación</div>
+        <div>👉 <strong>Dedo índice</strong> - Apuntar a teclas</div>
+        <div>⏱️ <strong>Mantener 3 segundos</strong> - Confirmar selección</div>
+        <div>✋ <strong>Brazo derecho en L</strong> - Finalizar y analizar</div>
         <div className="pt-2 border-t border-gray-700">
-          <div className="text-xs text-gray-400">Mueve el mouse sobre las teclas y mantén para seleccionar</div>
+          <div className="text-xs text-gray-400">
+            {isReady ? '✅ MediaPipe listo' : '⏳ Preparando...'}
+          </div>
         </div>
       </div>
 
@@ -238,20 +211,20 @@ function App() {
       {/* Teclado virtual */}
       <VirtualKeyboard
         keys={graph.nodes.size > 0 ? Array.from(graph.nodes.values()) : UCI_KEYS}
-        fingerPosition={mousePosition}
+        fingerPosition={fingerPosition}
         canvasSize={canvasSize}
         hoveredKey={hoveredKey}
         hoverProgress={hoverProgress}
         isRecording={systemState === 'RECORDING'}
       />
 
-      {/* Cursor personalizado en modo RECORDING */}
-      {systemState === 'RECORDING' && mousePosition && (
+      {/* Cursor de dedo índice */}
+      {systemState === 'RECORDING' && fingerPosition && (
         <motion.div
           className="fixed pointer-events-none z-50"
           style={{
-            left: mousePosition.x,
-            top: mousePosition.y,
+            left: fingerPosition.x,
+            top: fingerPosition.y,
             transform: 'translate(-50%, -50%)'
           }}
           animate={{
