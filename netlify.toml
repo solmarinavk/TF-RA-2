@@ -1,7 +1,7 @@
 [build]
   base = "gesture-uci-system/frontend"
   command = "npm run build"
-  publish = "gesture-uci-system/frontend/dist"
+  publish = "dist"
 
 [[redirects]]
   from = "/*"
