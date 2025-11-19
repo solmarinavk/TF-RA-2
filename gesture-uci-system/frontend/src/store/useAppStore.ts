@@ -1,2 +1,219 @@
-// Zustand store for global application state
-// TODO: Implement state management for system state, selections, graph data
+import { create } from 'zustand';
+import { SystemState, PoseLandmark, HandLandmark, GraphEdge, GraphMetrics } from '@/types';
+import { UCI_KEYS, L_POSE_DURATION } from '@/utils/constants';
+import { InteractionGraph, createInteractionGraph } from '@/utils/graphEngine';
+
+interface AppState {
+  // === SISTEMA FSM ===
+  systemState: SystemState;
+  setSystemState: (state: SystemState) => void;
+
+  // === LANDMARKS ===
+  poseLandmarks: PoseLandmark[] | null;
+  handLandmarks: { left: HandLandmark[] | null; right: HandLandmark[] | null };
+  updatePoseLandmarks: (landmarks: PoseLandmark[] | null) => void;
+  updateHandLandmarks: (left: HandLandmark[] | null, right: HandLandmark[] | null) => void;
+
+  // === L-POSE DETECTION ===
+  leftLPoseStart: number | null;
+  rightLPoseStart: number | null;
+  updateLPoseState: (left: boolean, right: boolean) => void;
+
+  // === SELECTION ===
+  selectedKeys: string[];
+  hoveredKey: string | null;
+  hoverStartTime: number | null;
+  hoverProgress: number;
+  addSelection: (keyId: string) => void;
+  setHover: (keyId: string | null) => void;
+  updateHoverProgress: (progress: number) => void;
+  clearSelections: () => void;
+
+  // === GRAFO ===
+  graph: InteractionGraph;
+  graphEdges: GraphEdge[];
+  addInteraction: (fromKey: string, toKey: string) => void;
+
+  // === MÉTRICAS ===
+  metrics: GraphMetrics | null;
+  calculateMetrics: () => void;
+
+  // === MENSAJES ===
+  currentMessage: string[];
+  messages: string[][];
+  completeMessage: () => void;
+
+  // === RESET ===
+  resetSession: () => void;
+}
+
+export const useAppStore = create<AppState>((set, get) => ({
+  // ESTADO INICIAL
+  systemState: 'IDLE',
+  poseLandmarks: null,
+  handLandmarks: { left: null, right: null },
+  leftLPoseStart: null,
+  rightLPoseStart: null,
+  selectedKeys: [],
+  hoveredKey: null,
+  hoverStartTime: null,
+  hoverProgress: 0,
+  graph: createInteractionGraph(UCI_KEYS.map(k => ({ ...k }))),
+  graphEdges: [],
+  metrics: null,
+  currentMessage: [],
+  messages: [],
+
+  // ACTIONS
+  setSystemState: (state: SystemState) => set({ systemState: state }),
+
+  updatePoseLandmarks: (landmarks: PoseLandmark[] | null) => {
+    set({ poseLandmarks: landmarks });
+  },
+
+  updateHandLandmarks: (left: HandLandmark[] | null, right: HandLandmark[] | null) => {
+    set({ handLandmarks: { left, right } });
+  },
+
+  updateLPoseState: (left: boolean, right: boolean) => {
+    const state = get();
+    const now = Date.now();
+
+    // TRANSICIÓN: IDLE → RECORDING (brazo izquierdo en L)
+    if (state.systemState === 'IDLE' && left) {
+      if (state.leftLPoseStart === null) {
+        set({ leftLPoseStart: now });
+      } else if (now - state.leftLPoseStart >= L_POSE_DURATION) {
+        console.log('🎬 RECORDING STARTED - Left L-Pose detected');
+        set({
+          systemState: 'RECORDING',
+          leftLPoseStart: null,
+          selectedKeys: [],
+          currentMessage: [],
+          graph: createInteractionGraph(UCI_KEYS.map(k => ({ ...k })))
+        });
+      }
+    } else if (!left) {
+      set({ leftLPoseStart: null });
+    }
+
+    // TRANSICIÓN: RECORDING → PROCESSING (brazo derecho en L)
+    if (state.systemState === 'RECORDING' && right) {
+      if (state.rightLPoseStart === null) {
+        set({ rightLPoseStart: now });
+      } else if (now - state.rightLPoseStart >= L_POSE_DURATION) {
+        console.log('⚙️ PROCESSING - Right L-Pose detected');
+        set({
+          systemState: 'PROCESSING',
+          rightLPoseStart: null,
+          hoveredKey: null,
+          hoverProgress: 0
+        });
+
+        // Calcular métricas
+        setTimeout(() => {
+          get().calculateMetrics();
+          get().completeMessage();
+          set({ systemState: 'DISPLAYING' });
+          console.log('✅ DISPLAYING - Metrics calculated');
+        }, 500);
+      }
+    } else if (!right) {
+      set({ rightLPoseStart: null });
+    }
+  },
+
+  setHover: (keyId: string | null) => {
+    const state = get();
+
+    if (state.systemState !== 'RECORDING') return;
+
+    if (keyId !== state.hoveredKey) {
+      set({
+        hoveredKey: keyId,
+        hoverStartTime: keyId ? Date.now() : null,
+        hoverProgress: 0
+      });
+    }
+  },
+
+  updateHoverProgress: (progress: number) => {
+    set({ hoverProgress: progress });
+  },
+
+  addSelection: (keyId: string) => {
+    const state = get();
+
+    if (state.systemState !== 'RECORDING') return;
+
+    const keyNode = UCI_KEYS.find(k => k.id === keyId);
+    if (!keyNode) return;
+
+    console.log(`✅ Selected: ${keyNode.label}`);
+
+    // Añadir a mensaje actual
+    const newMessage = [...state.currentMessage, keyNode.label];
+
+    // Añadir edge al grafo si hay selección previa
+    if (state.selectedKeys.length > 0) {
+      const prevKey = state.selectedKeys[state.selectedKeys.length - 1];
+      state.graph.addEdge(prevKey, keyId);
+    }
+
+    set({
+      selectedKeys: [...state.selectedKeys, keyId],
+      currentMessage: newMessage,
+      graphEdges: state.graph.edges,
+      hoveredKey: null,
+      hoverStartTime: null,
+      hoverProgress: 0
+    });
+  },
+
+  addInteraction: (fromKey: string, toKey: string) => {
+    const state = get();
+    state.graph.addEdge(fromKey, toKey);
+    set({ graphEdges: state.graph.edges });
+  },
+
+  calculateMetrics: () => {
+    const state = get();
+    const metrics = state.graph.calculateMetrics();
+    console.log('📊 Metrics calculated:', metrics);
+    set({ metrics });
+  },
+
+  clearSelections: () => {
+    set({
+      selectedKeys: [],
+      currentMessage: [],
+      hoveredKey: null,
+      hoverStartTime: null,
+      hoverProgress: 0
+    });
+  },
+
+  completeMessage: () => {
+    const state = get();
+    if (state.currentMessage.length > 0) {
+      set({
+        messages: [...state.messages, state.currentMessage]
+      });
+    }
+  },
+
+  resetSession: () => {
+    console.log('🔄 RESET - Returning to IDLE');
+    set({
+      systemState: 'IDLE',
+      selectedKeys: [],
+      hoveredKey: null,
+      hoverStartTime: null,
+      hoverProgress: 0,
+      currentMessage: [],
+      leftLPoseStart: null,
+      rightLPoseStart: null,
+      metrics: null
+    });
+  }
+}));
