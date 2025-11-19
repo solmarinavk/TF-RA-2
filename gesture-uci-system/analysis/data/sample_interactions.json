@@ -1,0 +1,7 @@
+{
+  "interactions": [],
+  "metadata": {
+    "description": "Sample interaction data for testing graph analysis",
+    "format": "Array of interaction events with timestamps and selected keys"
+  }
+}
