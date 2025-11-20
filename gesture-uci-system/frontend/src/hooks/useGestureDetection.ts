@@ -80,37 +80,38 @@ export function useGestureDetection(
             const lPoseStatus = detectLPose(poseLandmarks);
             const anyArmInL = lPoseStatus.left || lPoseStatus.right;
 
-            // Debug: mostrar ángulos detectados (throttle a 1 vez por segundo)
-            const now = Date.now();
-            if (anyArmInL && now - lastLogTimeRef.current > 1000) {
-              lastLogTimeRef.current = now;
-              console.log('🔍 Brazo en L detectado:', {
-                lado: lPoseStatus.left ? 'izquierdo' : 'derecho',
-                ángulo: lPoseStatus.left ? lPoseStatus.leftAngle?.toFixed(1) : lPoseStatus.rightAngle?.toFixed(1)
-              });
-            }
-
             // Detectar estado de la mano correspondiente al brazo en L
             let handOpen = false;
             let handClosed = false;
             let handSide = '';
+            let hasHand = false;
 
             if (lPoseStatus.left && leftHand) {
               handOpen = isHandOpen(leftHand);
               handClosed = isHandClosed(leftHand);
               handSide = 'izquierda';
+              hasHand = true;
             } else if (lPoseStatus.right && rightHand) {
               handOpen = isHandOpen(rightHand);
               handClosed = isHandClosed(rightHand);
               handSide = 'derecha';
+              hasHand = true;
             }
 
-            // Debug: mostrar estado de mano solo si hay un gesto completo
-            if (anyArmInL && (handOpen || handClosed)) {
-              console.log(`✅ GESTO COMPLETO - Mano ${handSide}:`, {
-                'palma abierta': handOpen,
-                'puño cerrado': handClosed
-              });
+            // Debug mejorado con throttle
+            const now = Date.now();
+            if (now - lastLogTimeRef.current > 1000) {
+              lastLogTimeRef.current = now;
+
+              if (anyArmInL) {
+                console.log('🔍 DETECCIÓN ACTIVA:', {
+                  brazoEnL: anyArmInL ? (lPoseStatus.left ? 'izquierdo' : 'derecho') : 'ninguno',
+                  ángulo: lPoseStatus.left ? lPoseStatus.leftAngle?.toFixed(1) : lPoseStatus.rightAngle?.toFixed(1),
+                  manoDetectada: hasHand,
+                  manoLado: hasHand ? handSide : 'ninguna',
+                  estadoMano: hasHand ? (handClosed ? 'CERRADA' : 'ABIERTA') : 'N/A'
+                });
+              }
             }
 
             // Actualizar estado del gesto

@@ -19,6 +19,8 @@ interface AppState {
   closedHandGestureStart: number | null;
   leftHandLandmarks: HandLandmark[] | null;
   rightHandLandmarks: HandLandmark[] | null;
+  gestureProgress: number; // 0-100 para barra de progreso
+  gestureType: 'none' | 'starting' | 'stopping'; // Qué gesto se está detectando
   updateGestureState: (armInL: boolean, handOpen: boolean, handClosed: boolean) => void;
 
   // === SELECTION ===
@@ -58,6 +60,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   closedHandGestureStart: null,
   leftHandLandmarks: null,
   rightHandLandmarks: null,
+  gestureProgress: 0,
+  gestureType: 'none',
   selectedKeys: [],
   hoveredKey: null,
   hoverStartTime: null,
@@ -86,44 +90,68 @@ export const useAppStore = create<AppState>((set, get) => ({
     // TRANSICIÓN: IDLE → RECORDING (brazo en L + palma abierta)
     if (state.systemState === 'IDLE' && armInL && handOpen) {
       if (state.openHandGestureStart === null) {
-        set({ openHandGestureStart: now });
-      } else if (now - state.openHandGestureStart >= L_POSE_DURATION) {
-        console.log('🎬 RECORDING STARTED - L-Pose + Open Hand detected');
-        set({
-          systemState: 'RECORDING',
-          openHandGestureStart: null,
-          selectedKeys: [],
-          currentMessage: [],
-          graph: createInteractionGraph(UCI_KEYS.map(k => ({ ...k })))
-        });
+        console.log('⏱️ Iniciando detección de gesto de INICIO...');
+        set({ openHandGestureStart: now, gestureType: 'starting' });
+      } else {
+        const elapsed = now - state.openHandGestureStart;
+        const progress = Math.min((elapsed / L_POSE_DURATION) * 100, 100);
+        set({ gestureProgress: progress, gestureType: 'starting' });
+
+        if (elapsed >= L_POSE_DURATION) {
+          console.log('🎬 RECORDING STARTED - L-Pose + Open Hand detected');
+          set({
+            systemState: 'RECORDING',
+            openHandGestureStart: null,
+            gestureProgress: 0,
+            gestureType: 'none',
+            selectedKeys: [],
+            currentMessage: [],
+            graph: createInteractionGraph(UCI_KEYS.map(k => ({ ...k })))
+          });
+        }
       }
     } else if (!(armInL && handOpen)) {
-      set({ openHandGestureStart: null });
+      if (state.openHandGestureStart !== null) {
+        console.log('❌ Gesto de INICIO interrumpido');
+      }
+      set({ openHandGestureStart: null, gestureProgress: 0, gestureType: 'none' });
     }
 
     // TRANSICIÓN: RECORDING → PROCESSING (brazo en L + puño cerrado)
     if (state.systemState === 'RECORDING' && armInL && handClosed) {
       if (state.closedHandGestureStart === null) {
-        set({ closedHandGestureStart: now });
-      } else if (now - state.closedHandGestureStart >= L_POSE_DURATION) {
-        console.log('⚙️ PROCESSING - L-Pose + Closed Hand detected');
-        set({
-          systemState: 'PROCESSING',
-          closedHandGestureStart: null,
-          hoveredKey: null,
-          hoverProgress: 0
-        });
+        console.log('⏱️ Iniciando detección de gesto de FINALIZACIÓN...');
+        set({ closedHandGestureStart: now, gestureType: 'stopping' });
+      } else {
+        const elapsed = now - state.closedHandGestureStart;
+        const progress = Math.min((elapsed / L_POSE_DURATION) * 100, 100);
+        set({ gestureProgress: progress, gestureType: 'stopping' });
 
-        // Calcular métricas
-        setTimeout(() => {
-          get().calculateMetrics();
-          get().completeMessage();
-          set({ systemState: 'DISPLAYING' });
-          console.log('✅ DISPLAYING - Metrics calculated');
-        }, 500);
+        if (elapsed >= L_POSE_DURATION) {
+          console.log('⚙️ PROCESSING - L-Pose + Closed Hand detected');
+          set({
+            systemState: 'PROCESSING',
+            closedHandGestureStart: null,
+            gestureProgress: 0,
+            gestureType: 'none',
+            hoveredKey: null,
+            hoverProgress: 0
+          });
+
+          // Calcular métricas
+          setTimeout(() => {
+            get().calculateMetrics();
+            get().completeMessage();
+            set({ systemState: 'DISPLAYING' });
+            console.log('✅ DISPLAYING - Metrics calculated');
+          }, 500);
+        }
       }
     } else if (!(armInL && handClosed)) {
-      set({ closedHandGestureStart: null });
+      if (state.closedHandGestureStart !== null) {
+        console.log('❌ Gesto de FINALIZACIÓN interrumpido');
+      }
+      set({ closedHandGestureStart: null, gestureProgress: 0, gestureType: 'none' });
     }
   },
 

@@ -17,5 +17,5 @@ export const SELECTION_DURATION = 3000; // 3 segundos
 export const PROXIMITY_THRESHOLD = 80; // pixels
 export const HOVER_THRESHOLD = 60; // pixels
 export const L_POSE_ANGLE_TOLERANCE = 30; // grados (más permisivo)
-export const L_POSE_DURATION = 1000; // 1 segundo (reducido para respuesta rápida)
+export const L_POSE_DURATION = 2000; // 2 segundos con feedback visual
 export const FPS_TARGET = 30;

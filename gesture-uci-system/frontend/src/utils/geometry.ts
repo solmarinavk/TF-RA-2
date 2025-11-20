@@ -266,53 +266,21 @@ function distance3D(
 
 /**
  * Detecta si la mano está abierta (palma extendida)
+ * Estrategia simple: la mano está abierta si NO está cerrada
  * @param handLandmarks - Array de hand landmarks (21 puntos)
  * @returns true si la palma está abierta
  */
 export function isHandOpen(handLandmarks: HandLandmark[] | null): boolean {
   if (!handLandmarks || handLandmarks.length < 21) return false;
 
-  const wrist = handLandmarks[0]; // Muñeca
-
-  // Puntas de los dedos (índice, medio, anular, meñique)
-  const fingerTips = [8, 12, 16, 20];
-
-  // Bases de los dedos (MCPs)
-  const fingerBases = [5, 9, 13, 17];
-
-  // Verificar que todos los dedos estén extendidos
-  let extendedFingers = 0;
-
-  for (let i = 0; i < fingerTips.length; i++) {
-    const tip = handLandmarks[fingerTips[i]];
-    const base = handLandmarks[fingerBases[i]];
-
-    // Distancia de punta a muñeca vs base a muñeca
-    const tipToWrist = distance3D(tip, wrist);
-    const baseToWrist = distance3D(base, wrist);
-
-    // Si la punta está más lejos de la muñeca que la base, el dedo está extendido
-    if (tipToWrist > baseToWrist * 1.05) {
-      extendedFingers++;
-    }
-  }
-
-  // Verificar pulgar por separado (diferente geometría)
-  const thumbTip = handLandmarks[4];
-  const thumbBase = handLandmarks[2];
-  const thumbToWrist = distance3D(thumbTip, wrist);
-  const thumbBaseToWrist = distance3D(thumbBase, wrist);
-
-  if (thumbToWrist > thumbBaseToWrist * 1.05) {
-    extendedFingers++;
-  }
-
-  // La mano está abierta si al menos 3 dedos están extendidos (más permisivo)
-  return extendedFingers >= 3;
+  // Estrategia simplificada: si no está cerrada, está abierta
+  // Esto hace que sea mucho más fácil activar el inicio de grabación
+  return !isHandClosed(handLandmarks);
 }
 
 /**
  * Detecta si la mano está cerrada (puño)
+ * Más estricto para evitar cortes accidentales de grabación
  * @param handLandmarks - Array de hand landmarks (21 puntos)
  * @returns true si la mano está cerrada
  */
@@ -320,30 +288,40 @@ export function isHandClosed(handLandmarks: HandLandmark[] | null): boolean {
   if (!handLandmarks || handLandmarks.length < 21) return false;
 
   const wrist = handLandmarks[0]; // Muñeca
+  const palm = handLandmarks[9]; // Centro de la palma
 
-  // Puntas de los dedos
+  // Puntas de los dedos (índice, medio, anular, meñique)
   const fingerTips = [8, 12, 16, 20];
 
-  // Bases de los dedos (MCPs)
-  const fingerBases = [5, 9, 13, 17];
-
-  // Verificar que todos los dedos estén doblados
+  // Verificar que las puntas estén cerca de la palma (puño cerrado)
   let closedFingers = 0;
 
-  for (let i = 0; i < fingerTips.length; i++) {
-    const tip = handLandmarks[fingerTips[i]];
-    const base = handLandmarks[fingerBases[i]];
+  for (const tipIndex of fingerTips) {
+    const tip = handLandmarks[tipIndex];
 
-    // Distancia de punta a muñeca vs base a muñeca
+    // Distancia de punta a palma
+    const tipToPalm = distance3D(tip, palm);
+
+    // Distancia de punta a muñeca
     const tipToWrist = distance3D(tip, wrist);
-    const baseToWrist = distance3D(base, wrist);
 
-    // Si la punta está más cerca de la muñeca que la base, el dedo está doblado
-    if (tipToWrist < baseToWrist * 1.2) {
+    // Si la punta está muy cerca de la palma (puño cerrado)
+    // la distancia punta-palma debe ser pequeña comparada con punta-muñeca
+    if (tipToPalm < tipToWrist * 0.4) {
       closedFingers++;
     }
   }
 
-  // La mano está cerrada si al menos 3 dedos están doblados
-  return closedFingers >= 3;
+  // Verificar pulgar también
+  const thumbTip = handLandmarks[4];
+  const thumbToPalm = distance3D(thumbTip, palm);
+  const thumbToWrist = distance3D(thumbTip, wrist);
+
+  if (thumbToPalm < thumbToWrist * 0.5) {
+    closedFingers++;
+  }
+
+  // La mano está cerrada solo si AL MENOS 4 dedos están doblados (muy estricto)
+  // Esto evita cortes accidentales
+  return closedFingers >= 4;
 }

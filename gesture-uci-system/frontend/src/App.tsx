@@ -5,6 +5,7 @@ import { useAppStore } from './store/useAppStore';
 import { UCI_KEYS } from './utils/constants';
 import { VirtualKeyboard } from './components/Keyboard/VirtualKeyboard';
 import { StateIndicator } from './components/UI/StateIndicator';
+import { GestureProgressBar } from './components/UI/GestureProgressBar';
 import { CameraFeed } from './components/Camera/CameraFeed';
 import { LandmarksOverlay } from './components/Camera/LandmarksOverlay';
 import { useMediaPipe } from './hooks/useMediaPipe';
@@ -20,6 +21,8 @@ function App() {
     selectedKeys,
     metrics,
     graph,
+    gestureProgress,
+    gestureType,
     resetSession
   } = useAppStore();
 
@@ -245,6 +248,14 @@ function App() {
           <div className="w-6 h-6 bg-yellow-400 rounded-full border-4 border-white shadow-2xl" />
         </motion.div>
       )}
+
+      {/* Barra de progreso de gestos */}
+      <GestureProgressBar
+        progress={gestureProgress}
+        label={gestureType === 'starting' ? 'Iniciando Grabación' : 'Finalizando Grabación'}
+        color={gestureType === 'starting' ? '#10b981' : '#ef4444'}
+        visible={gestureType !== 'none'}
+      />
 
       {/* Grid de fondo */}
       <div
