@@ -64,11 +64,18 @@ function App() {
   // Pantalla de carga
   if (isLoading) {
     return (
-      <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="text-center">
-          <div className="text-6xl mb-4 animate-pulse">🤖</div>
-          <div className="text-white text-2xl font-bold mb-2">Cargando MediaPipe...</div>
-          <div className="text-gray-400">Inicializando detección de poses y manos</div>
+          <div className="text-6xl mb-6 animate-pulse">🏥</div>
+          <div className="text-white text-2xl font-bold mb-3">UCI Gesture System</div>
+          <div className="text-slate-400">Inicializando detección de poses y manos...</div>
+          <div className="mt-6 w-48 h-1 bg-slate-700 rounded-full overflow-hidden mx-auto">
+            <motion.div
+              className="h-full bg-blue-500 rounded-full"
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </div>
         </div>
       </div>
     );
@@ -77,156 +84,172 @@ function App() {
   // Pantalla de error
   if (error) {
     return (
-      <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-        <div className="text-center">
-          <div className="text-6xl mb-4">❌</div>
-          <div className="text-white text-2xl font-bold mb-2">Error de Inicialización</div>
-          <div className="text-gray-400">{error}</div>
+      <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="text-center max-w-md px-6">
+          <div className="text-6xl mb-6">⚠️</div>
+          <div className="text-white text-2xl font-bold mb-3">Error de Inicialización</div>
+          <div className="text-slate-400 text-sm">{error}</div>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          >
+            Reintentar
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className="relative w-screen h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      {/* Video de cámara */}
+    <div ref={containerRef} className="relative w-screen h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Video de cámara - fondo semitransparente */}
       <CameraFeed onVideoReady={setVideoElement} />
 
       {/* Overlay de landmarks (puntos detectados) */}
       <LandmarksOverlay canvasSize={canvasSize} />
 
-      {/* Título y logo */}
-      <div className="fixed top-6 left-6 z-40">
-        <h1 className="text-2xl font-black text-white drop-shadow-lg">
-          UCI Gesture System
-        </h1>
-        <p className="text-xs text-gray-400 mt-1">Sistema de Comunicación Gestual Hospitalaria</p>
-      </div>
+      {/* Header minimalista */}
+      <header className="fixed top-0 left-0 right-0 z-30 px-6 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-white tracking-tight">
+            UCI Gesture System
+          </h1>
+          <p className="text-xs text-slate-500">Comunicación Gestual Hospitalaria</p>
+        </div>
 
-      {/* Indicador de estado */}
-      <StateIndicator state={systemState} />
+        {/* Indicador de estado */}
+        <StateIndicator state={systemState} />
+      </header>
 
-      {/* Panel de instrucciones */}
-      <div className="fixed bottom-6 left-6 z-40 bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-lg p-4 text-white text-sm space-y-2 max-w-xs">
-        <div className="font-bold mb-3">📖 Instrucciones:</div>
-        <div>💪 <strong>Brazo IZQUIERDO en L</strong> - Iniciar (2s)</div>
-        <div>👉 <strong>Dedo índice</strong> - Apuntar a teclas</div>
-        <div>⏱️ <strong>Mantener 3 segundos</strong> - Confirmar</div>
-        <div>✊ <strong>Brazo DERECHO en L + puño</strong> - Finalizar (2s)</div>
-        <div className="pt-2 border-t border-gray-700">
-          <div className="text-xs text-gray-400">
-            {isReady ? '✅ MediaPipe listo' : '⏳ Preparando...'}
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            Ángulo L: 45°-135° | Líneas azules = detección
-          </div>
+      {/* Área de círculos - centrada horizontalmente */}
+      <div className="fixed top-[18%] left-0 right-0 z-20 flex justify-center">
+        <div className="relative" style={{ width: '90%', maxWidth: '1400px' }}>
+          <VirtualKeyboard
+            keys={graph.nodes.size > 0 ? Array.from(graph.nodes.values()) : UCI_KEYS}
+            fingerPosition={fingerPosition}
+            canvasSize={canvasSize}
+            hoveredKey={hoveredKey}
+            hoverProgress={hoverProgress}
+            isRecording={systemState === 'RECORDING'}
+          />
         </div>
       </div>
 
-      {/* Panel de mensaje actual */}
+      {/* Panel de mensaje actual - DEBAJO de los círculos */}
       {systemState !== 'IDLE' && (
         <motion.div
-          className="fixed top-6 right-6 z-40 bg-gray-800 bg-opacity-80 backdrop-blur-sm rounded-lg p-4 text-white min-w-[250px] max-w-[300px]"
-          initial={{ x: 400, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.5, type: 'spring' }}
+          className="fixed top-[38%] left-1/2 -translate-x-1/2 z-30 bg-slate-800/90 backdrop-blur-md rounded-xl p-5 text-white min-w-[300px] max-w-[400px] shadow-2xl border border-slate-700/50"
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.4, type: 'spring' }}
         >
-          <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-            <span>💬</span>
-            Mensaje Actual
+          <h3 className="font-semibold text-base mb-4 flex items-center gap-2 text-slate-200">
+            <span className="text-lg">💬</span>
+            Mensaje en construcción
           </h3>
 
           {currentMessage.length === 0 ? (
-            <div className="text-gray-400 text-sm italic">
-              Sin selecciones aún...
+            <div className="text-slate-500 text-sm text-center py-4">
+              Apunta a un círculo para seleccionar...
             </div>
           ) : (
-            <div className="space-y-2">
-              {currentMessage.map((word, i) => (
-                <motion.div
-                  key={i}
-                  className="bg-blue-600 px-3 py-2 rounded text-sm"
-                  initial={{ scale: 0, x: -20 }}
-                  animate={{ scale: 1, x: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                >
-                  {i + 1}. {word}
-                </motion.div>
-              ))}
+            <div className="flex flex-wrap gap-2">
+              {currentMessage.map((word, i) => {
+                const keyNode = UCI_KEYS.find(k => k.label === word);
+                return (
+                  <motion.div
+                    key={i}
+                    className="px-3 py-1.5 rounded-full text-sm font-medium text-white shadow-md"
+                    style={{ backgroundColor: keyNode?.color || '#3b82f6' }}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: i * 0.05, type: 'spring' }}
+                  >
+                    {word}
+                  </motion.div>
+                );
+              })}
             </div>
           )}
 
-          <div className="mt-4 pt-4 border-t border-gray-700 text-xs text-gray-400">
-            Total selecciones: {selectedKeys.length}
+          <div className="mt-4 pt-3 border-t border-slate-700/50 flex justify-between items-center text-xs text-slate-500">
+            <span>{selectedKeys.length} selección{selectedKeys.length !== 1 ? 'es' : ''}</span>
+            <span className="text-slate-600">Puño derecho para finalizar</span>
           </div>
         </motion.div>
       )}
 
-      {/* Panel de métricas */}
+      {/* Panel de instrucciones - esquina inferior izquierda, compacto */}
+      <div className="fixed bottom-4 left-4 z-40 bg-slate-800/80 backdrop-blur-sm rounded-lg p-3 text-white text-xs space-y-1.5 max-w-[220px] border border-slate-700/30">
+        <div className="font-semibold text-slate-300 mb-2 text-sm">Controles</div>
+        <div className="flex items-center gap-2">
+          <span className="w-5 text-center">💪</span>
+          <span className="text-slate-400">Brazo izq. en L → Iniciar</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-5 text-center">👆</span>
+          <span className="text-slate-400">Dedo índice → Seleccionar</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-5 text-center">✊</span>
+          <span className="text-slate-400">Brazo der. + puño → Fin</span>
+        </div>
+        <div className="pt-2 border-t border-slate-700/50 text-slate-600">
+          {isReady ? '● Sistema listo' : '○ Preparando...'}
+        </div>
+      </div>
+
+      {/* Panel de métricas - aparece al finalizar */}
       {systemState === 'DISPLAYING' && metrics && (
         <motion.div
-          className="fixed bottom-6 right-6 z-40 bg-gray-800 bg-opacity-95 backdrop-blur-sm rounded-lg p-6 text-white min-w-[350px]"
-          initial={{ y: 400, opacity: 0 }}
+          className="fixed bottom-4 right-4 z-40 bg-slate-800/95 backdrop-blur-md rounded-xl p-5 text-white w-[320px] shadow-2xl border border-slate-700/50"
+          initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, type: 'spring' }}
         >
-          <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+          <h3 className="font-semibold text-base mb-4 flex items-center gap-2">
             <span>📊</span>
-            Análisis del Grafo
+            Análisis del Mensaje
           </h3>
 
-          <div className="space-y-3 text-sm">
-            <div>
-              <div className="text-gray-400">Densidad de red:</div>
-              <div className="font-mono text-xl text-green-400">{(metrics.density * 100).toFixed(1)}%</div>
+          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+            <div className="bg-slate-700/50 rounded-lg p-3">
+              <div className="text-slate-400 text-xs mb-1">Densidad</div>
+              <div className="font-mono text-lg text-emerald-400">{(metrics.density * 100).toFixed(1)}%</div>
             </div>
-
-            <div>
-              <div className="text-gray-400">Diámetro:</div>
-              <div className="font-mono text-xl text-blue-400">{metrics.diameter ?? 'N/A'}</div>
+            <div className="bg-slate-700/50 rounded-lg p-3">
+              <div className="text-slate-400 text-xs mb-1">Diámetro</div>
+              <div className="font-mono text-lg text-blue-400">{metrics.diameter ?? 'N/A'}</div>
             </div>
+          </div>
 
-            <div>
-              <div className="text-gray-400">Comunidades detectadas:</div>
-              <div className="font-mono text-xl text-purple-400">{Object.keys(metrics.communities).length}</div>
-            </div>
-
-            <div className="pt-3 border-t border-gray-700">
-              <div className="text-gray-400 mb-2">Top 3 nodos centrales:</div>
+          <div className="mb-4">
+            <div className="text-slate-400 text-xs mb-2">Nodos más utilizados:</div>
+            <div className="space-y-1.5">
               {graph.getTopNodes('degree', 3).map((node) => {
                 const keyNode = UCI_KEYS.find(k => k.id === node.id);
                 return (
-                  <div key={node.id} className="flex items-center gap-2 text-xs mb-1">
+                  <div key={node.id} className="flex items-center gap-2 text-xs">
                     <div
-                      className="w-3 h-3 rounded-full"
+                      className="w-2.5 h-2.5 rounded-full"
                       style={{ backgroundColor: keyNode?.color }}
                     />
-                    <span>{keyNode?.label}</span>
-                    <span className="text-gray-500">({(node.value * 100).toFixed(0)}%)</span>
+                    <span className="text-slate-300 flex-1">{keyNode?.label}</span>
+                    <span className="text-slate-500 font-mono">{(node.value * 100).toFixed(0)}%</span>
                   </div>
                 );
               })}
             </div>
-
-            <button
-              onClick={resetSession}
-              className="mt-4 w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-bold transition-colors"
-            >
-              Nuevo Mensaje
-            </button>
           </div>
+
+          <button
+            onClick={resetSession}
+            className="w-full bg-blue-600 hover:bg-blue-500 px-4 py-2.5 rounded-lg font-medium transition-colors text-sm"
+          >
+            Nuevo Mensaje
+          </button>
         </motion.div>
       )}
-
-      {/* Teclado virtual */}
-      <VirtualKeyboard
-        keys={graph.nodes.size > 0 ? Array.from(graph.nodes.values()) : UCI_KEYS}
-        fingerPosition={fingerPosition}
-        canvasSize={canvasSize}
-        hoveredKey={hoveredKey}
-        hoverProgress={hoverProgress}
-        isRecording={systemState === 'RECORDING'}
-      />
 
       {/* Cursor de dedo índice */}
       {systemState === 'RECORDING' && fingerPosition && (
@@ -238,36 +261,28 @@ function App() {
             transform: 'translate(-50%, -50%)'
           }}
           animate={{
-            scale: [1, 1.2, 1],
+            scale: [1, 1.15, 1],
           }}
           transition={{
-            duration: 0.8,
-            repeat: Infinity
+            duration: 1,
+            repeat: Infinity,
+            ease: 'easeInOut'
           }}
         >
-          <div className="w-6 h-6 bg-yellow-400 rounded-full border-4 border-white shadow-2xl" />
+          <div className="w-5 h-5 bg-yellow-400 rounded-full border-3 border-white shadow-lg shadow-yellow-400/50" />
         </motion.div>
       )}
 
-      {/* Barra de progreso de gestos */}
+      {/* Barra de progreso de gestos - centrada en la parte superior */}
       <GestureProgressBar
         progress={gestureProgress}
-        label={gestureType === 'starting' ? 'Iniciando Grabación' : 'Finalizando Grabación'}
+        label={gestureType === 'starting' ? 'Iniciando grabación...' : 'Finalizando...'}
         color={gestureType === 'starting' ? '#10b981' : '#ef4444'}
         visible={gestureType !== 'none'}
       />
 
-      {/* Grid de fondo */}
-      <div
-        className="absolute inset-0 opacity-5 pointer-events-none"
-        style={{
-          backgroundImage: `
-            linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent),
-            linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent)
-          `,
-          backgroundSize: '50px 50px'
-        }}
-      />
+      {/* Sutil overlay de gradiente para mejor contraste */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/40 pointer-events-none z-10" />
     </div>
   );
 }

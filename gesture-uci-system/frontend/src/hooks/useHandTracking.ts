@@ -1,9 +1,39 @@
 import { useEffect, useRef, useState } from 'react';
 import { HandLandmarker } from '@mediapipe/tasks-vision';
 import { HandLandmark } from '@/types';
-import { getIndexFingerTip, findClosestNode } from '@/utils/geometry';
+import { getIndexFingerTip } from '@/utils/geometry';
 import { useAppStore } from '@/store/useAppStore';
-import { UCI_KEYS, HOVER_THRESHOLD, SELECTION_DURATION } from '@/utils/constants';
+import { SELECTION_DURATION } from '@/utils/constants';
+
+/**
+ * Encuentra el círculo más cercano basándose en posiciones reales del DOM
+ */
+function findClosestCircleByDOM(
+  fingerPos: { x: number; y: number }
+): string | null {
+  // Buscar todos los botones de círculo por su data attribute
+  const circles = document.querySelectorAll('[data-key-id]');
+
+  let closestId: string | null = null;
+  let minDistance = Infinity;
+
+  circles.forEach((circle) => {
+    const rect = circle.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const radius = rect.width / 2;
+
+    const distance = Math.hypot(fingerPos.x - centerX, fingerPos.y - centerY);
+
+    // Detectar si el dedo está dentro del círculo
+    if (distance < radius && distance < minDistance) {
+      minDistance = distance;
+      closestId = circle.getAttribute('data-key-id');
+    }
+  });
+
+  return closestId;
+}
 
 export function useHandTracking(
   landmarker: HandLandmarker | null,
@@ -66,14 +96,8 @@ export function useHandTracking(
 
               setFingerPosition(fingerPixels);
 
-              // Buscar tecla más cercana
-              const closestKey = findClosestNode(
-                fingerPixels,
-                UCI_KEYS,
-                canvasSize,
-                HOVER_THRESHOLD
-              );
-
+              // Buscar círculo más cercano usando posiciones reales del DOM
+              const closestKey = findClosestCircleByDOM(fingerPixels);
               setHover(closestKey);
             } else {
               setFingerPosition(null);

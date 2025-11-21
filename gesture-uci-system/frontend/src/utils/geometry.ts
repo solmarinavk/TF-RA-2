@@ -284,7 +284,7 @@ export function isHandOpen(handLandmarks: HandLandmark[] | null): boolean {
 
 /**
  * Detecta si la mano está cerrada (puño)
- * Más estricto para evitar cortes accidentales de grabación
+ * MUY estricto para evitar cortes accidentales de grabación
  * @param handLandmarks - Array de hand landmarks (21 puntos)
  * @returns true si la mano está cerrada
  */
@@ -309,23 +309,21 @@ export function isHandClosed(handLandmarks: HandLandmark[] | null): boolean {
     // Distancia de punta a muñeca
     const tipToWrist = distance3D(tip, wrist);
 
-    // Si la punta está muy cerca de la palma (puño cerrado)
-    // la distancia punta-palma debe ser pequeña comparada con punta-muñeca
-    if (tipToPalm < tipToWrist * 0.4) {
+    // Más estricto: ratio de 0.35 en vez de 0.4
+    if (tipToPalm < tipToWrist * 0.35) {
       closedFingers++;
     }
   }
 
-  // Verificar pulgar también
+  // Verificar pulgar también (más estricto: 0.4 en vez de 0.5)
   const thumbTip = handLandmarks[4];
   const thumbToPalm = distance3D(thumbTip, palm);
   const thumbToWrist = distance3D(thumbTip, wrist);
 
-  if (thumbToPalm < thumbToWrist * 0.5) {
+  if (thumbToPalm < thumbToWrist * 0.4) {
     closedFingers++;
   }
 
-  // La mano está cerrada solo si AL MENOS 4 dedos están doblados (muy estricto)
-  // Esto evita cortes accidentales
-  return closedFingers >= 4;
+  // MUY ESTRICTO: todos los 5 dedos deben estar cerrados
+  return closedFingers >= 5;
 }

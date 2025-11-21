@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { KeyNode } from '@/types';
-import { PROXIMITY_THRESHOLD } from '@/utils/constants';
 
 interface KeyButtonProps {
   keyNode: KeyNode;
@@ -15,35 +14,44 @@ interface KeyButtonProps {
 export const KeyButton: React.FC<KeyButtonProps> = ({
   keyNode,
   fingerPosition,
-  canvasSize,
   hoverProgress,
   isHovered,
   isRecording
 }) => {
-  // Calcular posición en píxeles
-  const posX = keyNode.position.x * canvasSize.width;
-  const posY = keyNode.position.y * canvasSize.height;
+  const buttonRef = useRef<HTMLDivElement>(null);
+  const [isProximate, setIsProximate] = useState(false);
 
-  // Calcular distancia al dedo
-  let distance = Infinity;
-  let isProximate = false;
+  // Calcular proximidad basándose en la posición real del elemento en pantalla
+  useEffect(() => {
+    if (!fingerPosition || !buttonRef.current) {
+      setIsProximate(false);
+      return;
+    }
 
-  if (fingerPosition) {
-    distance = Math.hypot(fingerPosition.x - posX, fingerPosition.y - posY);
-    isProximate = distance < PROXIMITY_THRESHOLD;
-  }
+    const rect = buttonRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const distance = Math.hypot(fingerPosition.x - centerX, fingerPosition.y - centerY);
+    const proximityThreshold = keyNode.radius * 1.5;
+
+    setIsProximate(distance < proximityThreshold);
+  }, [fingerPosition, keyNode.radius]);
+
+  const size = keyNode.radius * 2;
 
   return (
     <motion.div
-      className="absolute pointer-events-none select-none"
+      ref={buttonRef}
+      data-key-id={keyNode.id}
+      className="relative pointer-events-none select-none flex-shrink-0"
       style={{
-        left: `${keyNode.position.x * 100}%`,
-        top: `${keyNode.position.y * 100}%`,
-        transform: 'translate(-50%, -50%)',
+        width: size,
+        height: size,
         zIndex: isHovered ? 100 : isProximate ? 50 : 10
       }}
       animate={{
-        scale: isHovered ? 1.3 : isProximate ? 1.15 : 1
+        scale: isHovered ? 1.2 : isProximate ? 1.08 : 1
       }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
     >
@@ -53,14 +61,9 @@ export const KeyButton: React.FC<KeyButtonProps> = ({
           className="absolute inset-0 rounded-full"
           style={{
             border: `3px solid ${keyNode.color}`,
-            width: `${keyNode.radius * 2}px`,
-            height: `${keyNode.radius * 2}px`,
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)'
           }}
           animate={{
-            scale: [1, 1.2, 1],
+            scale: [1, 1.15, 1],
             opacity: [0.6, 0.2, 0.6]
           }}
           transition={{
@@ -73,42 +76,38 @@ export const KeyButton: React.FC<KeyButtonProps> = ({
 
       {/* Círculo principal */}
       <div
-        className="relative rounded-full flex items-center justify-center font-bold text-white text-center shadow-2xl backdrop-blur-sm"
+        className="relative w-full h-full rounded-full flex items-center justify-center font-bold text-white text-center shadow-xl backdrop-blur-sm"
         style={{
-          backgroundColor: isHovered ? keyNode.color : `${keyNode.color}CC`,
-          width: `${keyNode.radius * 2}px`,
-          height: `${keyNode.radius * 2}px`,
-          border: isHovered ? '4px solid white' : '3px solid rgba(255,255,255,0.4)',
+          backgroundColor: isHovered ? keyNode.color : `${keyNode.color}DD`,
+          border: isHovered ? '3px solid white' : '2px solid rgba(255,255,255,0.3)',
           boxShadow: isHovered
-            ? `0 0 30px ${keyNode.color}, 0 0 60px ${keyNode.color}80`
+            ? `0 0 25px ${keyNode.color}, 0 0 50px ${keyNode.color}60`
             : isProximate
-            ? `0 0 20px ${keyNode.color}60`
-            : '0 4px 12px rgba(0,0,0,0.3)',
-          fontSize: keyNode.radius > 50 ? '11px' : '9px',
-          padding: '8px'
+            ? `0 0 15px ${keyNode.color}40`
+            : '0 4px 15px rgba(0,0,0,0.4)',
+          fontSize: size > 100 ? '12px' : '10px',
+          padding: '8px',
+          lineHeight: 1.2
         }}
       >
         {/* Texto de la tecla */}
-        <span className="z-10 leading-tight">{keyNode.label}</span>
+        <span className="z-10 leading-tight px-1">{keyNode.label}</span>
 
         {/* Barra de progreso circular */}
         {isHovered && isRecording && hoverProgress > 0 && (
           <>
             <svg
               className="absolute inset-0 -rotate-90"
-              style={{
-                width: `${keyNode.radius * 2}px`,
-                height: `${keyNode.radius * 2}px`
-              }}
+              style={{ width: '100%', height: '100%' }}
             >
               <circle
-                cx={keyNode.radius}
-                cy={keyNode.radius}
-                r={keyNode.radius - 6}
+                cx="50%"
+                cy="50%"
+                r={keyNode.radius - 5}
                 fill="none"
                 stroke="white"
-                strokeWidth="6"
-                strokeDasharray={`${(hoverProgress / 100) * (2 * Math.PI * (keyNode.radius - 6))} ${2 * Math.PI * (keyNode.radius - 6)}`}
+                strokeWidth="5"
+                strokeDasharray={`${(hoverProgress / 100) * (2 * Math.PI * (keyNode.radius - 5))} ${2 * Math.PI * (keyNode.radius - 5)}`}
                 strokeLinecap="round"
                 className="transition-all duration-100"
               />
@@ -116,13 +115,11 @@ export const KeyButton: React.FC<KeyButtonProps> = ({
 
             {/* Porcentaje central */}
             <motion.div
-              className="absolute inset-0 flex items-center justify-center text-white font-black bg-black bg-opacity-60 rounded-full"
+              className="absolute inset-0 flex items-center justify-center text-white font-black bg-black/70 rounded-full"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2 }}
-              style={{
-                fontSize: `${keyNode.radius * 0.6}px`
-              }}
+              transition={{ duration: 0.15 }}
+              style={{ fontSize: `${keyNode.radius * 0.5}px` }}
             >
               {Math.round(hoverProgress)}%
             </motion.div>
@@ -133,10 +130,10 @@ export const KeyButton: React.FC<KeyButtonProps> = ({
       {/* Badge contador de selecciones */}
       {keyNode.selectionCount > 0 && (
         <motion.div
-          className="absolute -top-2 -right-2 bg-white text-black rounded-full shadow-lg flex items-center justify-center font-black text-xs border-2"
+          className="absolute -top-1 -right-1 bg-white text-slate-900 rounded-full shadow-lg flex items-center justify-center font-black text-xs border-2"
           style={{
-            width: `${Math.max(24, keyNode.radius * 0.4)}px`,
-            height: `${Math.max(24, keyNode.radius * 0.4)}px`,
+            width: 22,
+            height: 22,
             borderColor: keyNode.color
           }}
           initial={{ scale: 0 }}
@@ -151,17 +148,10 @@ export const KeyButton: React.FC<KeyButtonProps> = ({
       {isHovered && hoverProgress === 100 && (
         <motion.div
           className="absolute inset-0 rounded-full"
-          style={{
-            backgroundColor: keyNode.color,
-            width: `${keyNode.radius * 2}px`,
-            height: `${keyNode.radius * 2}px`,
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)'
-          }}
+          style={{ backgroundColor: keyNode.color }}
           initial={{ scale: 1, opacity: 0.8 }}
           animate={{ scale: 2, opacity: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.5 }}
         />
       )}
     </motion.div>
