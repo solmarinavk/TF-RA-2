@@ -202,14 +202,14 @@ export function getIndexFingerTip(handLandmarks: HandLandmark[] | null): { x: nu
  * @param point - Punto en píxeles
  * @param nodes - Array de nodos con posiciones normalizadas
  * @param dimensions - Dimensiones del canvas
- * @param threshold - Distancia máxima para considerar hover
+ * @param threshold - Distancia máxima base (se usa el mayor entre threshold y radius del nodo)
  * @returns ID del nodo más cercano o null
  */
 export function findClosestNode(
   point: { x: number; y: number },
   nodes: Array<{ id: string; position: { x: number; y: number }; radius: number }>,
   dimensions: { width: number; height: number },
-  threshold: number
+  _threshold: number // No usado - ahora usamos node.radius directamente
 ): string | null {
   let closestId: string | null = null;
   let minDistance = Infinity;
@@ -218,7 +218,11 @@ export function findClosestNode(
     const nodePixels = normalizeToPixels(node.position, dimensions);
     const distance = calculateDistance(point, nodePixels);
 
-    if (distance < threshold && distance < minDistance) {
+    // Detectar si el dedo está DENTRO del círculo (distance < radius)
+    // Usamos el radio del nodo como threshold para que funcione en cualquier parte del círculo
+    const effectiveThreshold = node.radius;
+
+    if (distance < effectiveThreshold && distance < minDistance) {
       minDistance = distance;
       closestId = node.id;
     }
