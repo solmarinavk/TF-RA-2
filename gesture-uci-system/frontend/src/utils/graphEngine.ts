@@ -1,19 +1,22 @@
 import { KeyNode, GraphEdge, GraphMetrics } from '@/types';
 
 /**
- * Motor de grafos para análisis de interacciones
+ * Motor de grafos avanzado para análisis de interacciones UCI
+ * Implementa métricas estructurales, centralidades, robustez,
+ * detección de comunidades, análisis de transiciones y modelos de difusión
  */
 export class InteractionGraph {
   nodes: Map<string, KeyNode>;
   adjacency: Map<string, Map<string, number>>; // lista de adyacencia con pesos
   edges: GraphEdge[];
+  transitionSequence: string[]; // Secuencia temporal de selecciones
 
   constructor(initialNodes: KeyNode[]) {
     this.nodes = new Map(initialNodes.map(node => [node.id, { ...node }]));
     this.adjacency = new Map();
     this.edges = [];
+    this.transitionSequence = [];
 
-    // Inicializar adjacency para cada nodo
     for (const node of initialNodes) {
       this.adjacency.set(node.id, new Map());
     }
@@ -23,105 +26,69 @@ export class InteractionGraph {
    * Añade una arista dirigida del nodo from al nodo to
    */
   addEdge(from: string, to: string): void {
-    if (!this.nodes.has(from) || !this.nodes.has(to)) {
-      console.warn(`Attempting to add edge between non-existent nodes: ${from} -> ${to}`);
-      return;
-    }
+    if (!this.nodes.has(from) || !this.nodes.has(to)) return;
 
-    // Incrementar peso si ya existe la arista
     const fromAdj = this.adjacency.get(from)!;
     const currentWeight = fromAdj.get(to) || 0;
     fromAdj.set(to, currentWeight + 1);
 
-    // Actualizar o añadir edge
     const existingEdge = this.edges.find(e => e.from === from && e.to === to);
     if (existingEdge) {
       existingEdge.weight++;
       existingEdge.timestamp = Date.now();
     } else {
-      this.edges.push({
-        from,
-        to,
-        weight: 1,
-        timestamp: Date.now()
-      });
+      this.edges.push({ from, to, weight: 1, timestamp: Date.now() });
     }
 
-    // Incrementar selection count del nodo destino
+    // Registrar transición
+    this.transitionSequence.push(to);
+
     const toNode = this.nodes.get(to)!;
     toNode.selectionCount++;
     toNode.lastSelected = Date.now();
   }
 
-  /**
-   * Obtiene el grado de entrada de un nodo
-   */
+  // ============== CENTRALIDADES ==============
+
   getInDegree(nodeId: string): number {
     let inDegree = 0;
     for (const [_, neighbors] of this.adjacency) {
-      if (neighbors.has(nodeId)) {
-        inDegree += neighbors.get(nodeId)!;
-      }
+      if (neighbors.has(nodeId)) inDegree += neighbors.get(nodeId)!;
     }
     return inDegree;
   }
 
-  /**
-   * Obtiene el grado de salida de un nodo
-   */
   getOutDegree(nodeId: string): number {
     const neighbors = this.adjacency.get(nodeId);
     if (!neighbors) return 0;
-
     let outDegree = 0;
-    for (const weight of neighbors.values()) {
-      outDegree += weight;
-    }
+    for (const weight of neighbors.values()) outDegree += weight;
     return outDegree;
   }
 
-  /**
-   * Calcula la centralidad de grado (normalizada)
-   */
   calculateDegreeCentrality(): Record<string, number> {
     const n = this.nodes.size;
     if (n <= 1) return {};
 
     const centrality: Record<string, number> = {};
-
     for (const [nodeId] of this.nodes) {
-      const inDegree = this.getInDegree(nodeId);
-      const outDegree = this.getOutDegree(nodeId);
-      const totalDegree = inDegree + outDegree;
-
-      // Normalizar por el máximo posible: 2 * (n - 1) para grafo dirigido
-      centrality[nodeId] = totalDegree / (2 * (n - 1));
+      const total = this.getInDegree(nodeId) + this.getOutDegree(nodeId);
+      centrality[nodeId] = total / (2 * (n - 1));
     }
-
     return centrality;
   }
 
-  /**
-   * Calcula la centralidad de intermediación (Betweenness Centrality)
-   * Usa algoritmo de Brandes simplificado
-   */
   calculateBetweennessCentrality(): Record<string, number> {
     const centrality: Record<string, number> = {};
+    for (const [nodeId] of this.nodes) centrality[nodeId] = 0;
 
-    // Inicializar centrality
-    for (const [nodeId] of this.nodes) {
-      centrality[nodeId] = 0;
-    }
-
-    // Para cada nodo como fuente
     for (const [source] of this.nodes) {
       const stack: string[] = [];
-      const predecessors: Map<string, string[]> = new Map();
-      const sigma: Map<string, number> = new Map(); // número de shortest paths
-      const distance: Map<string, number> = new Map();
-      const delta: Map<string, number> = new Map();
+      const predecessors = new Map<string, string[]>();
+      const sigma = new Map<string, number>();
+      const distance = new Map<string, number>();
+      const delta = new Map<string, number>();
 
-      // Inicializar
       for (const [nodeId] of this.nodes) {
         predecessors.set(nodeId, []);
         sigma.set(nodeId, 0);
@@ -131,23 +98,17 @@ export class InteractionGraph {
 
       sigma.set(source, 1);
       distance.set(source, 0);
-
       const queue: string[] = [source];
 
-      // BFS
       while (queue.length > 0) {
         const v = queue.shift()!;
         stack.push(v);
-
         const neighbors = this.adjacency.get(v)!;
         for (const [w] of neighbors) {
-          // Primera vez que visitamos w?
           if (distance.get(w)! < 0) {
             queue.push(w);
             distance.set(w, distance.get(v)! + 1);
           }
-
-          // Shortest path a w vía v?
           if (distance.get(w)! === distance.get(v)! + 1) {
             sigma.set(w, sigma.get(w)! + sigma.get(v)!);
             predecessors.get(w)!.push(v);
@@ -155,57 +116,141 @@ export class InteractionGraph {
         }
       }
 
-      // Acumular dependency
       while (stack.length > 0) {
         const w = stack.pop()!;
         for (const v of predecessors.get(w)!) {
           const factor = (sigma.get(v)! / sigma.get(w)!) * (1 + delta.get(w)!);
           delta.set(v, delta.get(v)! + factor);
         }
-
-        if (w !== source) {
-          centrality[w] += delta.get(w)!;
-        }
+        if (w !== source) centrality[w] += delta.get(w)!;
       }
     }
 
-    // Normalizar para grafo dirigido
     const n = this.nodes.size;
     const normFactor = n > 2 ? 1 / ((n - 1) * (n - 2)) : 1;
-
-    for (const nodeId in centrality) {
-      centrality[nodeId] *= normFactor;
-    }
-
+    for (const nodeId in centrality) centrality[nodeId] *= normFactor;
     return centrality;
   }
 
   /**
-   * Calcula la densidad del grafo
-   * Densidad = m / (n * (n - 1)) para grafo dirigido
+   * Closeness Centrality - qué tan cerca está un nodo de todos los demás
    */
-  calculateDensity(): number {
+  calculateClosenessCentrality(): Record<string, number> {
+    const centrality: Record<string, number> = {};
     const n = this.nodes.size;
-    if (n <= 1) return 0;
 
-    const m = this.edges.length;
-    return m / (n * (n - 1));
+    for (const [nodeId] of this.nodes) {
+      const distances = this.bfs(nodeId);
+      let totalDistance = 0;
+      let reachable = 0;
+
+      for (const [target, dist] of distances) {
+        if (target !== nodeId && dist >= 0) {
+          totalDistance += dist;
+          reachable++;
+        }
+      }
+
+      centrality[nodeId] = reachable > 0 ? reachable / totalDistance : 0;
+      // Normalizar
+      if (n > 1) centrality[nodeId] *= (reachable / (n - 1));
+    }
+    return centrality;
   }
 
   /**
-   * Calcula el diámetro del grafo (distancia máxima entre nodos conectados)
-   * Retorna null si el grafo no es conexo
+   * Eigenvector Centrality - influencia basada en conexiones a nodos influyentes
    */
-  calculateDiameter(): number | null {
+  calculateEigenvectorCentrality(iterations: number = 100): Record<string, number> {
+    const centrality: Record<string, number> = {};
     const n = this.nodes.size;
-    if (n === 0) return null;
+    if (n === 0) return centrality;
 
+    // Inicializar con valores iguales
+    for (const [nodeId] of this.nodes) {
+      centrality[nodeId] = 1 / n;
+    }
+
+    for (let iter = 0; iter < iterations; iter++) {
+      const newCentrality: Record<string, number> = {};
+      let sum = 0;
+
+      for (const [nodeId] of this.nodes) {
+        let score = 0;
+        // Sumar centralidad de vecinos entrantes
+        for (const [_, neighbors] of this.adjacency) {
+          if (neighbors.has(nodeId)) {
+            const sourceId = Array.from(this.adjacency.entries())
+              .find(([_, adj]) => adj === neighbors)?.[0];
+            if (sourceId) score += centrality[sourceId] * neighbors.get(nodeId)!;
+          }
+        }
+        newCentrality[nodeId] = score;
+        sum += score * score;
+      }
+
+      // Normalizar
+      const norm = Math.sqrt(sum) || 1;
+      for (const nodeId in newCentrality) {
+        centrality[nodeId] = newCentrality[nodeId] / norm;
+      }
+    }
+    return centrality;
+  }
+
+  /**
+   * PageRank - algoritmo de Google adaptado para grafos dirigidos
+   */
+  calculatePageRank(damping: number = 0.85, iterations: number = 100): Record<string, number> {
+    const pageRank: Record<string, number> = {};
+    const n = this.nodes.size;
+    if (n === 0) return pageRank;
+
+    // Inicializar
+    for (const [nodeId] of this.nodes) {
+      pageRank[nodeId] = 1 / n;
+    }
+
+    for (let iter = 0; iter < iterations; iter++) {
+      const newRank: Record<string, number> = {};
+
+      for (const [nodeId] of this.nodes) {
+        let incomingRank = 0;
+
+        // Encontrar nodos que apuntan a este nodo
+        for (const [sourceId, neighbors] of this.adjacency) {
+          if (neighbors.has(nodeId)) {
+            const outDegree = this.getOutDegree(sourceId);
+            if (outDegree > 0) {
+              incomingRank += pageRank[sourceId] / outDegree;
+            }
+          }
+        }
+
+        newRank[nodeId] = (1 - damping) / n + damping * incomingRank;
+      }
+
+      for (const nodeId in newRank) {
+        pageRank[nodeId] = newRank[nodeId];
+      }
+    }
+    return pageRank;
+  }
+
+  // ============== MÉTRICAS TOPOLÓGICAS ==============
+
+  calculateDensity(): number {
+    const n = this.nodes.size;
+    if (n <= 1) return 0;
+    return this.edges.length / (n * (n - 1));
+  }
+
+  calculateDiameter(): number | null {
     let maxDistance = 0;
     let hasPath = false;
 
     for (const [source] of this.nodes) {
       const distances = this.bfs(source);
-
       for (const [target, distance] of distances) {
         if (source !== target && distance >= 0) {
           hasPath = true;
@@ -213,20 +258,75 @@ export class InteractionGraph {
         }
       }
     }
-
     return hasPath ? maxDistance : null;
   }
 
   /**
-   * BFS desde un nodo fuente para calcular distancias
+   * Average Path Length - longitud promedio de caminos
    */
+  calculateAveragePathLength(): number | null {
+    let totalDistance = 0;
+    let pathCount = 0;
+
+    for (const [source] of this.nodes) {
+      const distances = this.bfs(source);
+      for (const [target, distance] of distances) {
+        if (source !== target && distance >= 0) {
+          totalDistance += distance;
+          pathCount++;
+        }
+      }
+    }
+    return pathCount > 0 ? totalDistance / pathCount : null;
+  }
+
+  /**
+   * Clustering Coefficient Global
+   */
+  calculateClusteringCoefficient(): number {
+    let totalCoeff = 0;
+    let nodesWithNeighbors = 0;
+
+    for (const [nodeId] of this.nodes) {
+      const neighbors = new Set<string>();
+
+      // Vecinos salientes
+      const outNeighbors = this.adjacency.get(nodeId)!;
+      for (const [n] of outNeighbors) neighbors.add(n);
+
+      // Vecinos entrantes
+      for (const [sourceId, adj] of this.adjacency) {
+        if (adj.has(nodeId)) neighbors.add(sourceId);
+      }
+
+      const k = neighbors.size;
+      if (k < 2) continue;
+
+      nodesWithNeighbors++;
+      let triangles = 0;
+      const neighborArray = Array.from(neighbors);
+
+      for (let i = 0; i < neighborArray.length; i++) {
+        for (let j = i + 1; j < neighborArray.length; j++) {
+          const ni = neighborArray[i];
+          const nj = neighborArray[j];
+          // Verificar si hay conexión entre vecinos
+          if (this.adjacency.get(ni)?.has(nj) || this.adjacency.get(nj)?.has(ni)) {
+            triangles++;
+          }
+        }
+      }
+
+      const possibleTriangles = (k * (k - 1)) / 2;
+      totalCoeff += triangles / possibleTriangles;
+    }
+
+    return nodesWithNeighbors > 0 ? totalCoeff / nodesWithNeighbors : 0;
+  }
+
   private bfs(source: string): Map<string, number> {
     const distances = new Map<string, number>();
-
-    // Inicializar todas las distancias a -1 (no alcanzable)
-    for (const [nodeId] of this.nodes) {
-      distances.set(nodeId, -1);
-    }
+    for (const [nodeId] of this.nodes) distances.set(nodeId, -1);
 
     distances.set(source, 0);
     const queue: string[] = [source];
@@ -234,8 +334,8 @@ export class InteractionGraph {
     while (queue.length > 0) {
       const current = queue.shift()!;
       const currentDistance = distances.get(current)!;
-
       const neighbors = this.adjacency.get(current)!;
+
       for (const [neighbor] of neighbors) {
         if (distances.get(neighbor)! < 0) {
           distances.set(neighbor, currentDistance + 1);
@@ -243,32 +343,23 @@ export class InteractionGraph {
         }
       }
     }
-
     return distances;
   }
 
-  /**
-   * Detecta comunidades usando algoritmo de Louvain simplificado
-   * Retorna un mapa de comunidad ID a lista de nodos
-   */
-  detectCommunities(): Record<number, string[]> {
-    // Implementación simplificada: clustering basado en modularidad
-    // Para un grafo pequeño (10 nodos), podemos usar greedy modularity
+  // ============== COMUNIDADES ==============
 
-    const communities: Map<string, number> = new Map();
+  detectCommunities(): Record<number, string[]> {
+    const communities = new Map<string, number>();
     let communityId = 0;
 
-    // Inicialmente cada nodo es su propia comunidad
     for (const [nodeId] of this.nodes) {
       communities.set(nodeId, communityId++);
     }
 
     let improved = true;
     let iterations = 0;
-    const maxIterations = 10;
 
-    // Iterar hasta que no haya mejoras o máx iteraciones
-    while (improved && iterations < maxIterations) {
+    while (improved && iterations < 10) {
       improved = false;
       iterations++;
 
@@ -277,7 +368,6 @@ export class InteractionGraph {
         let bestCommunity = currentCommunity;
         let bestGain = 0;
 
-        // Probar mover el nodo a la comunidad de cada vecino
         const neighbors = this.adjacency.get(nodeId)!;
         const neighborCommunities = new Set<number>();
 
@@ -287,9 +377,7 @@ export class InteractionGraph {
 
         for (const targetCommunity of neighborCommunities) {
           if (targetCommunity === currentCommunity) continue;
-
           const gain = this.calculateModularityGain(nodeId, currentCommunity, targetCommunity, communities);
-
           if (gain > bestGain) {
             bestGain = gain;
             bestCommunity = targetCommunity;
@@ -303,80 +391,293 @@ export class InteractionGraph {
       }
     }
 
-    // Convertir a formato de salida
     const result: Record<number, string[]> = {};
     for (const [nodeId, commId] of communities) {
-      if (!result[commId]) {
-        result[commId] = [];
-      }
+      if (!result[commId]) result[commId] = [];
       result[commId].push(nodeId);
     }
-
     return result;
   }
 
-  /**
-   * Calcula la ganancia de modularidad al mover un nodo a otra comunidad
-   */
   private calculateModularityGain(
-    nodeId: string,
-    fromCommunity: number,
-    toCommunity: number,
+    nodeId: string, fromCommunity: number, toCommunity: number,
     communities: Map<string, number>
   ): number {
     let gain = 0;
-
-    // Contar enlaces del nodo a cada comunidad
     const neighbors = this.adjacency.get(nodeId)!;
 
     for (const [neighborId, weight] of neighbors) {
       const neighborCommunity = communities.get(neighborId)!;
-
-      if (neighborCommunity === toCommunity) {
-        gain += weight;
-      } else if (neighborCommunity === fromCommunity) {
-        gain -= weight;
-      }
+      if (neighborCommunity === toCommunity) gain += weight;
+      else if (neighborCommunity === fromCommunity) gain -= weight;
     }
-
     return gain;
   }
 
   /**
-   * Calcula todas las métricas del grafo
+   * Modularity Score - calidad de la partición en comunidades
    */
+  calculateModularity(communities: Record<number, string[]>): number {
+    const m = this.edges.reduce((sum, e) => sum + e.weight, 0);
+    if (m === 0) return 0;
+
+    let q = 0;
+    const nodeToComm = new Map<string, number>();
+
+    for (const [commId, nodes] of Object.entries(communities)) {
+      for (const nodeId of nodes) {
+        nodeToComm.set(nodeId, parseInt(commId));
+      }
+    }
+
+    for (const [i] of this.nodes) {
+      for (const [j] of this.nodes) {
+        if (nodeToComm.get(i) !== nodeToComm.get(j)) continue;
+
+        const aij = this.adjacency.get(i)?.get(j) || 0;
+        const ki = this.getOutDegree(i);
+        const kj = this.getInDegree(j);
+
+        q += aij - (ki * kj) / (2 * m);
+      }
+    }
+    return q / (2 * m);
+  }
+
+  // ============== ROBUSTEZ ==============
+
+  calculateRobustness(): {
+    criticalNodes: string[];
+    vulnerabilityScore: number;
+    connectivityAfterRemoval: number;
+  } {
+    const originalConnectivity = this.calculateConnectivity();
+    const vulnerabilities: Array<{ nodeId: string; impact: number }> = [];
+
+    for (const [nodeId] of this.nodes) {
+      // Simular eliminación del nodo
+      const tempAdj = new Map(this.adjacency);
+      tempAdj.delete(nodeId);
+
+      for (const [_, neighbors] of tempAdj) {
+        neighbors.delete(nodeId);
+      }
+
+      const newConnectivity = this.calculateConnectivityForAdjacency(tempAdj);
+      const impact = originalConnectivity - newConnectivity;
+      vulnerabilities.push({ nodeId, impact });
+    }
+
+    vulnerabilities.sort((a, b) => b.impact - a.impact);
+
+    const criticalNodes = vulnerabilities.slice(0, 3).map(v => v.nodeId);
+    const maxImpact = vulnerabilities[0]?.impact || 0;
+    const vulnerabilityScore = originalConnectivity > 0 ? maxImpact / originalConnectivity : 0;
+    const connectivityAfterRemoval = originalConnectivity - maxImpact;
+
+    return { criticalNodes, vulnerabilityScore, connectivityAfterRemoval };
+  }
+
+  private calculateConnectivity(): number {
+    return this.calculateConnectivityForAdjacency(this.adjacency);
+  }
+
+  private calculateConnectivityForAdjacency(adj: Map<string, Map<string, number>>): number {
+    let reachablePairs = 0;
+    const nodes = Array.from(adj.keys());
+
+    for (const source of nodes) {
+      const visited = new Set<string>([source]);
+      const queue = [source];
+
+      while (queue.length > 0) {
+        const current = queue.shift()!;
+        const neighbors = adj.get(current);
+        if (neighbors) {
+          for (const [neighbor] of neighbors) {
+            if (!visited.has(neighbor) && adj.has(neighbor)) {
+              visited.add(neighbor);
+              queue.push(neighbor);
+              reachablePairs++;
+            }
+          }
+        }
+      }
+    }
+    return reachablePairs;
+  }
+
+  // ============== ANÁLISIS DE TRANSICIONES ==============
+
+  calculateTransitionAnalysis(): {
+    mostCommonPath: string[];
+    transitionMatrix: Record<string, Record<string, number>>;
+    entropy: number;
+    burstiness: number;
+  } {
+    // Matriz de transición
+    const transitionMatrix: Record<string, Record<string, number>> = {};
+    const transitionCounts: Record<string, number> = {};
+
+    for (const [nodeId] of this.nodes) {
+      transitionMatrix[nodeId] = {};
+      for (const [targetId] of this.nodes) {
+        transitionMatrix[nodeId][targetId] = 0;
+      }
+    }
+
+    // Contar transiciones
+    for (const edge of this.edges) {
+      transitionCounts[edge.from] = (transitionCounts[edge.from] || 0) + edge.weight;
+    }
+
+    // Calcular probabilidades
+    for (const edge of this.edges) {
+      const total = transitionCounts[edge.from] || 1;
+      transitionMatrix[edge.from][edge.to] = edge.weight / total;
+    }
+
+    // Entropía de transiciones
+    let entropy = 0;
+    for (const from in transitionMatrix) {
+      for (const to in transitionMatrix[from]) {
+        const p = transitionMatrix[from][to];
+        if (p > 0) entropy -= p * Math.log2(p);
+      }
+    }
+    entropy = entropy / (this.nodes.size || 1);
+
+    // Burstiness - irregularidad temporal
+    const timestamps = this.edges.map(e => e.timestamp).sort((a, b) => a - b);
+    let burstiness = 0;
+    if (timestamps.length > 1) {
+      const intervals: number[] = [];
+      for (let i = 1; i < timestamps.length; i++) {
+        intervals.push(timestamps[i] - timestamps[i - 1]);
+      }
+      const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+      const std = Math.sqrt(intervals.reduce((sum, x) => sum + (x - mean) ** 2, 0) / intervals.length);
+      burstiness = (std - mean) / (std + mean + 0.001);
+    }
+
+    // Camino más común (secuencia de 3)
+    const pathCounts: Record<string, number> = {};
+    for (let i = 0; i < this.transitionSequence.length - 2; i++) {
+      const path = this.transitionSequence.slice(i, i + 3).join('->');
+      pathCounts[path] = (pathCounts[path] || 0) + 1;
+    }
+
+    let mostCommonPath: string[] = [];
+    let maxCount = 0;
+    for (const [path, count] of Object.entries(pathCounts)) {
+      if (count > maxCount) {
+        maxCount = count;
+        mostCommonPath = path.split('->');
+      }
+    }
+
+    return { mostCommonPath, transitionMatrix, entropy, burstiness };
+  }
+
+  // ============== MODELO DE DIFUSIÓN ==============
+
+  calculateDiffusionModel(): {
+    spreadPotential: Record<string, number>;
+    activationThreshold: number;
+    cascadeSize: number;
+  } {
+    // Potencial de difusión basado en centralidad y conexiones salientes
+    const pageRank = this.calculatePageRank();
+    const spreadPotential: Record<string, number> = {};
+
+    for (const [nodeId] of this.nodes) {
+      const outDegree = this.getOutDegree(nodeId);
+      const pr = pageRank[nodeId] || 0;
+      spreadPotential[nodeId] = (outDegree * 0.5 + pr * 0.5) * (this.nodes.size > 0 ? this.nodes.size : 1);
+    }
+
+    // Normalizar
+    const maxPotential = Math.max(...Object.values(spreadPotential), 1);
+    for (const nodeId in spreadPotential) {
+      spreadPotential[nodeId] /= maxPotential;
+    }
+
+    // Umbral de activación promedio
+    const density = this.calculateDensity();
+    const activationThreshold = 1 - density;
+
+    // Simular cascada desde el nodo más central
+    const topNode = Object.entries(spreadPotential).sort((a, b) => b[1] - a[1])[0]?.[0];
+    let cascadeSize = 0;
+
+    if (topNode) {
+      const activated = new Set<string>([topNode]);
+      const queue = [topNode];
+
+      while (queue.length > 0) {
+        const current = queue.shift()!;
+        const neighbors = this.adjacency.get(current);
+
+        if (neighbors) {
+          for (const [neighbor, weight] of neighbors) {
+            if (!activated.has(neighbor)) {
+              // Probabilidad de activación basada en peso
+              const prob = weight / (this.getInDegree(neighbor) || 1);
+              if (prob > activationThreshold * 0.5) {
+                activated.add(neighbor);
+                queue.push(neighbor);
+              }
+            }
+          }
+        }
+      }
+      cascadeSize = activated.size / this.nodes.size;
+    }
+
+    return { spreadPotential, activationThreshold, cascadeSize };
+  }
+
+  // ============== MÉTRICAS COMPLETAS ==============
+
   calculateMetrics(): GraphMetrics {
+    const communities = this.detectCommunities();
+    const transitions = this.calculateTransitionAnalysis();
+    const diffusion = this.calculateDiffusionModel();
+    const robustness = this.calculateRobustness();
+
     return {
       degreeCentrality: this.calculateDegreeCentrality(),
       betweennessCentrality: this.calculateBetweennessCentrality(),
+      closenessCentrality: this.calculateClosenessCentrality(),
+      eigenvectorCentrality: this.calculateEigenvectorCentrality(),
+      pageRank: this.calculatePageRank(),
       density: this.calculateDensity(),
       diameter: this.calculateDiameter(),
-      communities: this.detectCommunities()
+      averagePathLength: this.calculateAveragePathLength(),
+      clusteringCoefficient: this.calculateClusteringCoefficient(),
+      communities,
+      modularity: this.calculateModularity(communities),
+      robustness,
+      transitions,
+      diffusion
     };
   }
 
-  /**
-   * Exporta el grafo a formato JSON para análisis externo
-   */
-  exportToJSON(): string {
-    return JSON.stringify({
-      nodes: Array.from(this.nodes.values()),
-      edges: this.edges,
-      metrics: this.calculateMetrics(),
-      timestamp: Date.now()
-    }, null, 2);
-  }
-
-  /**
-   * Obtiene los nodos más centrales
-   */
-  getTopNodes(metric: 'degree' | 'betweenness', limit: number = 3): Array<{ id: string; value: number }> {
+  getTopNodes(metric: 'degree' | 'betweenness' | 'pagerank', limit: number = 3): Array<{ id: string; value: number }> {
     let centrality: Record<string, number>;
 
-    if (metric === 'degree') {
-      centrality = this.calculateDegreeCentrality();
-    } else {
-      centrality = this.calculateBetweennessCentrality();
+    switch (metric) {
+      case 'degree':
+        centrality = this.calculateDegreeCentrality();
+        break;
+      case 'betweenness':
+        centrality = this.calculateBetweennessCentrality();
+        break;
+      case 'pagerank':
+        centrality = this.calculatePageRank();
+        break;
+      default:
+        centrality = this.calculateDegreeCentrality();
     }
 
     return Object.entries(centrality)
@@ -385,14 +686,21 @@ export class InteractionGraph {
       .slice(0, limit);
   }
 
-  /**
-   * Limpia el grafo (mantiene nodos, elimina edges)
-   */
+  exportToJSON(): string {
+    return JSON.stringify({
+      nodes: Array.from(this.nodes.values()),
+      edges: this.edges,
+      metrics: this.calculateMetrics(),
+      transitionSequence: this.transitionSequence,
+      timestamp: Date.now()
+    }, null, 2);
+  }
+
   reset(): void {
     this.edges = [];
+    this.transitionSequence = [];
     this.adjacency.clear();
 
-    // Reinicializar adjacency y selection counts
     for (const [nodeId, node] of this.nodes) {
       this.adjacency.set(nodeId, new Map());
       node.selectionCount = 0;
@@ -401,9 +709,6 @@ export class InteractionGraph {
   }
 }
 
-/**
- * Crea una instancia del grafo desde datos iniciales
- */
 export function createInteractionGraph(nodes: KeyNode[]): InteractionGraph {
   return new InteractionGraph(nodes);
 }

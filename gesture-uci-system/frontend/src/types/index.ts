@@ -104,9 +104,42 @@ export interface SelectionState {
 }
 
 export interface GraphMetrics {
+  // Centralidades
   degreeCentrality: Record<string, number>;
   betweennessCentrality: Record<string, number>;
+  closenessCentrality: Record<string, number>;
+  eigenvectorCentrality: Record<string, number>;
+  pageRank: Record<string, number>;
+
+  // Métricas topológicas
   density: number;
   diameter: number | null;
+  averagePathLength: number | null;
+  clusteringCoefficient: number;
+
+  // Comunidades
   communities: Record<number, string[]>;
+  modularity: number;
+
+  // Robustez
+  robustness: {
+    criticalNodes: string[];          // Nodos cuya eliminación fragmenta más la red
+    vulnerabilityScore: number;       // 0-1, qué tan vulnerable es la red
+    connectivityAfterRemoval: number; // Conectividad si se elimina el nodo más crítico
+  };
+
+  // Análisis de transiciones
+  transitions: {
+    mostCommonPath: string[];         // Secuencia más frecuente
+    transitionMatrix: Record<string, Record<string, number>>; // Probabilidades de transición
+    entropy: number;                  // Entropía de las transiciones (predictibilidad)
+    burstiness: number;               // Irregularidad temporal
+  };
+
+  // Modelo de difusión
+  diffusion: {
+    spreadPotential: Record<string, number>;  // Potencial de cada nodo para difundir
+    activationThreshold: number;              // Umbral promedio de activación
+    cascadeSize: number;                      // Tamaño esperado de cascada desde nodo central
+  };
 }

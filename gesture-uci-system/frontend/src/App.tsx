@@ -6,6 +6,7 @@ import { UCI_KEYS } from './utils/constants';
 import { VirtualKeyboard } from './components/Keyboard/VirtualKeyboard';
 import { StateIndicator } from './components/UI/StateIndicator';
 import { GestureProgressBar } from './components/UI/GestureProgressBar';
+import { MetricsPanel } from './components/UI/MetricsPanel';
 import { CameraFeed } from './components/Camera/CameraFeed';
 import { LandmarksOverlay } from './components/Camera/LandmarksOverlay';
 import { useMediaPipe } from './hooks/useMediaPipe';
@@ -199,56 +200,13 @@ function App() {
         </div>
       </div>
 
-      {/* Panel de métricas - aparece al finalizar */}
+      {/* Panel de métricas completo - aparece al finalizar */}
       {systemState === 'DISPLAYING' && metrics && (
-        <motion.div
-          className="fixed bottom-4 right-4 z-40 bg-slate-800/95 backdrop-blur-md rounded-xl p-5 text-white w-[320px] shadow-2xl border border-slate-700/50"
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, type: 'spring' }}
-        >
-          <h3 className="font-semibold text-base mb-4 flex items-center gap-2">
-            <span>📊</span>
-            Análisis del Mensaje
-          </h3>
-
-          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-            <div className="bg-slate-700/50 rounded-lg p-3">
-              <div className="text-slate-400 text-xs mb-1">Densidad</div>
-              <div className="font-mono text-lg text-emerald-400">{(metrics.density * 100).toFixed(1)}%</div>
-            </div>
-            <div className="bg-slate-700/50 rounded-lg p-3">
-              <div className="text-slate-400 text-xs mb-1">Diámetro</div>
-              <div className="font-mono text-lg text-blue-400">{metrics.diameter ?? 'N/A'}</div>
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <div className="text-slate-400 text-xs mb-2">Nodos más utilizados:</div>
-            <div className="space-y-1.5">
-              {graph.getTopNodes('degree', 3).map((node) => {
-                const keyNode = UCI_KEYS.find(k => k.id === node.id);
-                return (
-                  <div key={node.id} className="flex items-center gap-2 text-xs">
-                    <div
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: keyNode?.color }}
-                    />
-                    <span className="text-slate-300 flex-1">{keyNode?.label}</span>
-                    <span className="text-slate-500 font-mono">{(node.value * 100).toFixed(0)}%</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <button
-            onClick={resetSession}
-            className="w-full bg-blue-600 hover:bg-blue-500 px-4 py-2.5 rounded-lg font-medium transition-colors text-sm"
-          >
-            Nuevo Mensaje
-          </button>
-        </motion.div>
+        <MetricsPanel
+          metrics={metrics}
+          keys={UCI_KEYS}
+          onReset={resetSession}
+        />
       )}
 
       {/* Cursor de dedo índice */}
