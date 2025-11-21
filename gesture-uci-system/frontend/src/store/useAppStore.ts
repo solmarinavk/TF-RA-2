@@ -15,13 +15,13 @@ interface AppState {
   updateHandLandmarks: (left: HandLandmark[] | null, right: HandLandmark[] | null) => void;
 
   // === GESTURE DETECTION ===
-  openHandGestureStart: number | null;
-  closedHandGestureStart: number | null;
+  leftArmGestureStart: number | null;
+  rightArmGestureStart: number | null;
   leftHandLandmarks: HandLandmark[] | null;
   rightHandLandmarks: HandLandmark[] | null;
   gestureProgress: number; // 0-100 para barra de progreso
   gestureType: 'none' | 'starting' | 'stopping'; // Qué gesto se está detectando
-  updateGestureState: (armInL: boolean, handOpen: boolean, handClosed: boolean) => void;
+  updateGestureState: (leftArmInL: boolean, rightArmInL: boolean) => void;
 
   // === SELECTION ===
   selectedKeys: string[];
@@ -56,8 +56,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   systemState: 'IDLE',
   poseLandmarks: null,
   handLandmarks: { left: null, right: null },
-  openHandGestureStart: null,
-  closedHandGestureStart: null,
+  leftArmGestureStart: null,
+  rightArmGestureStart: null,
   leftHandLandmarks: null,
   rightHandLandmarks: null,
   gestureProgress: 0,
@@ -83,25 +83,25 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ handLandmarks: { left, right } });
   },
 
-  updateGestureState: (armInL: boolean, handOpen: boolean, handClosed: boolean) => {
+  updateGestureState: (leftArmInL: boolean, rightArmInL: boolean) => {
     const state = get();
     const now = Date.now();
 
-    // TRANSICIÓN: IDLE → RECORDING (brazo en L + palma abierta)
-    if (state.systemState === 'IDLE' && armInL && handOpen) {
-      if (state.openHandGestureStart === null) {
-        console.log('⏱️ Iniciando detección de gesto de INICIO...');
-        set({ openHandGestureStart: now, gestureType: 'starting' });
+    // TRANSICIÓN: IDLE → RECORDING (solo brazo IZQUIERDO en L)
+    if (state.systemState === 'IDLE' && leftArmInL) {
+      if (state.leftArmGestureStart === null) {
+        console.log('⏱️ Brazo IZQUIERDO en L detectado - Iniciando cuenta regresiva...');
+        set({ leftArmGestureStart: now, gestureType: 'starting' });
       } else {
-        const elapsed = now - state.openHandGestureStart;
+        const elapsed = now - state.leftArmGestureStart;
         const progress = Math.min((elapsed / L_POSE_DURATION) * 100, 100);
         set({ gestureProgress: progress, gestureType: 'starting' });
 
         if (elapsed >= L_POSE_DURATION) {
-          console.log('🎬 RECORDING STARTED - L-Pose + Open Hand detected');
+          console.log('🎬 RECORDING STARTED - Brazo izquierdo en L confirmado');
           set({
             systemState: 'RECORDING',
-            openHandGestureStart: null,
+            leftArmGestureStart: null,
             gestureProgress: 0,
             gestureType: 'none',
             selectedKeys: [],
@@ -110,28 +110,28 @@ export const useAppStore = create<AppState>((set, get) => ({
           });
         }
       }
-    } else if (!(armInL && handOpen)) {
-      if (state.openHandGestureStart !== null) {
-        console.log('❌ Gesto de INICIO interrumpido');
+    } else if (!leftArmInL && state.systemState === 'IDLE') {
+      if (state.leftArmGestureStart !== null) {
+        console.log('❌ Gesto de INICIO interrumpido - mantén el brazo izquierdo en L');
       }
-      set({ openHandGestureStart: null, gestureProgress: 0, gestureType: 'none' });
+      set({ leftArmGestureStart: null, gestureProgress: 0, gestureType: 'none' });
     }
 
-    // TRANSICIÓN: RECORDING → PROCESSING (brazo en L + puño cerrado)
-    if (state.systemState === 'RECORDING' && armInL && handClosed) {
-      if (state.closedHandGestureStart === null) {
-        console.log('⏱️ Iniciando detección de gesto de FINALIZACIÓN...');
-        set({ closedHandGestureStart: now, gestureType: 'stopping' });
+    // TRANSICIÓN: RECORDING → PROCESSING (solo brazo DERECHO en L)
+    if (state.systemState === 'RECORDING' && rightArmInL) {
+      if (state.rightArmGestureStart === null) {
+        console.log('⏱️ Brazo DERECHO en L detectado - Iniciando cuenta regresiva para finalizar...');
+        set({ rightArmGestureStart: now, gestureType: 'stopping' });
       } else {
-        const elapsed = now - state.closedHandGestureStart;
+        const elapsed = now - state.rightArmGestureStart;
         const progress = Math.min((elapsed / L_POSE_DURATION) * 100, 100);
         set({ gestureProgress: progress, gestureType: 'stopping' });
 
         if (elapsed >= L_POSE_DURATION) {
-          console.log('⚙️ PROCESSING - L-Pose + Closed Hand detected');
+          console.log('⚙️ PROCESSING - Brazo derecho en L confirmado');
           set({
             systemState: 'PROCESSING',
-            closedHandGestureStart: null,
+            rightArmGestureStart: null,
             gestureProgress: 0,
             gestureType: 'none',
             hoveredKey: null,
@@ -147,11 +147,11 @@ export const useAppStore = create<AppState>((set, get) => ({
           }, 500);
         }
       }
-    } else if (!(armInL && handClosed)) {
-      if (state.closedHandGestureStart !== null) {
-        console.log('❌ Gesto de FINALIZACIÓN interrumpido');
+    } else if (!rightArmInL && state.systemState === 'RECORDING') {
+      if (state.rightArmGestureStart !== null) {
+        console.log('❌ Gesto de FINALIZACIÓN interrumpido - mantén el brazo derecho en L');
       }
-      set({ closedHandGestureStart: null, gestureProgress: 0, gestureType: 'none' });
+      set({ rightArmGestureStart: null, gestureProgress: 0, gestureType: 'none' });
     }
   },
 
@@ -243,8 +243,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       hoverStartTime: null,
       hoverProgress: 0,
       currentMessage: [],
-      openHandGestureStart: null,
-      closedHandGestureStart: null,
+      leftArmGestureStart: null,
+      rightArmGestureStart: null,
+      gestureProgress: 0,
+      gestureType: 'none',
       metrics: null
     });
   }

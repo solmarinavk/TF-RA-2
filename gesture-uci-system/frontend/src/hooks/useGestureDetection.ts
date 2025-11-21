@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { PoseLandmarker, HandLandmarker } from '@mediapipe/tasks-vision';
 import { PoseLandmark, HandLandmark } from '@/types';
-import { detectLPose, isHandOpen, isHandClosed } from '@/utils/geometry';
+import { detectLPose } from '@/utils/geometry';
 import { useAppStore } from '@/store/useAppStore';
 
 /**
- * Hook que detecta gestos combinados: brazo en L + estado de mano
- * - Brazo en L + palma abierta → Iniciar grabación
- * - Brazo en L + puño cerrado → Finalizar grabación
+ * Hook que detecta gestos de brazo en L para control del sistema
+ * - Brazo IZQUIERDO en L → Iniciar grabación
+ * - Brazo DERECHO en L → Finalizar grabación
+ * Sin necesidad de detectar estado de manos
  */
 export function useGestureDetection(
   poseLandmarker: PoseLandmarker | null,
@@ -51,7 +52,7 @@ export function useGestureDetection(
             updatePoseLandmarks(null);
           }
 
-          // Detectar manos
+          // Detectar manos (para tracking del índice, no para gestos FSM)
           const handResults = handLandmarker.detectForVideo(
             videoElement,
             performance.now()
@@ -75,77 +76,24 @@ export function useGestureDetection(
 
           updateHandLandmarks(leftHand, rightHand);
 
-          // Analizar gestos combinados
+          // Analizar gestos de brazos en L
           if (poseLandmarks) {
             const lPoseStatus = detectLPose(poseLandmarks);
-            const anyArmInL = lPoseStatus.left || lPoseStatus.right;
 
-            // Detectar estado de la mano correspondiente al brazo en L
-          const leftHandStatus = leftHand
-            ? { open: isHandOpen(leftHand), closed: isHandClosed(leftHand) }
-            : null;
-          const rightHandStatus = rightHand
-            ? { open: isHandOpen(rightHand), closed: isHandClosed(rightHand) }
-            : null;
-
-          let handOpen = false;
-          let handClosed = false;
-          let handSide = '';
-          let hasHand = false;
-
-          if (lPoseStatus.left) {
-            if (leftHandStatus) {
-              handOpen = leftHandStatus.open;
-              handClosed = leftHandStatus.closed;
-              handSide = 'izquierda';
-              hasHand = true;
-            } else if (rightHandStatus) {
-              // Fallback: si la mano izquierda no se ve, usa la derecha para no perder la activación
-              handOpen = rightHandStatus.open;
-              handClosed = rightHandStatus.closed;
-              handSide = 'derecha (fallback)';
-              hasHand = true;
-            }
-          } else if (lPoseStatus.right) {
-            if (rightHandStatus) {
-              handOpen = rightHandStatus.open;
-              handClosed = rightHandStatus.closed;
-              handSide = 'derecha';
-              hasHand = true;
-            } else if (leftHandStatus) {
-              // Fallback para brazo derecho usando mano izquierda si es lo único detectado
-              handOpen = leftHandStatus.open;
-              handClosed = leftHandStatus.closed;
-              handSide = 'izquierda (fallback)';
-              hasHand = true;
-            }
-          }
-
-          // Si no detectamos ninguna mano pero el brazo está en L, asumimos palma abierta para simplificar el inicio
-          if (anyArmInL && !hasHand) {
-            handOpen = true;
-            handClosed = false;
-            handSide = 'no detectada (fallback)';
-          }
-
-            // Debug mejorado con throttle
+            // Debug mejorado con throttle - mostrar SIEMPRE los ángulos
             const now = Date.now();
-            if (now - lastLogTimeRef.current > 1000) {
+            if (now - lastLogTimeRef.current > 500) {
               lastLogTimeRef.current = now;
 
-              if (anyArmInL) {
-                console.log('🔍 DETECCIÓN ACTIVA:', {
-                  brazoEnL: anyArmInL ? (lPoseStatus.left ? 'izquierdo' : 'derecho') : 'ninguno',
-                  ángulo: lPoseStatus.left ? lPoseStatus.leftAngle?.toFixed(1) : lPoseStatus.rightAngle?.toFixed(1),
-                  manoDetectada: hasHand,
-                  manoLado: hasHand ? handSide : 'ninguna',
-                  estadoMano: hasHand ? (handClosed ? 'CERRADA' : 'ABIERTA') : 'N/A'
-                });
-              }
+              console.log('🔍 ÁNGULOS DETECTADOS:', {
+                brazoIzq: lPoseStatus.leftAngle ? `${lPoseStatus.leftAngle.toFixed(1)}° ${lPoseStatus.left ? '✅ EN L' : ''}` : 'no visible',
+                brazoDer: lPoseStatus.rightAngle ? `${lPoseStatus.rightAngle.toFixed(1)}° ${lPoseStatus.right ? '✅ EN L' : ''}` : 'no visible',
+                tolerancia: '45-135°'
+              });
             }
 
-            // Actualizar estado del gesto
-            updateGestureState(anyArmInL, handOpen, handClosed);
+            // Actualizar estado del gesto - SIMPLIFICADO: solo brazos, sin manos
+            updateGestureState(lPoseStatus.left, lPoseStatus.right);
           }
 
         } catch (error) {

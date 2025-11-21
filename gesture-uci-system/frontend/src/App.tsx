@@ -109,16 +109,16 @@ function App() {
       {/* Panel de instrucciones */}
       <div className="fixed bottom-6 left-6 z-40 bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-lg p-4 text-white text-sm space-y-2 max-w-xs">
         <div className="font-bold mb-3">📖 Instrucciones:</div>
-        <div>🖐️ <strong>Brazo en L + palma abierta</strong> - Iniciar</div>
+        <div>💪 <strong>Brazo IZQUIERDO en L</strong> - Iniciar (2s)</div>
         <div>👉 <strong>Dedo índice</strong> - Apuntar a teclas</div>
         <div>⏱️ <strong>Mantener 3 segundos</strong> - Confirmar</div>
-        <div>✊ <strong>Brazo en L + puño</strong> - Finalizar</div>
+        <div>💪 <strong>Brazo DERECHO en L</strong> - Finalizar (2s)</div>
         <div className="pt-2 border-t border-gray-700">
           <div className="text-xs text-gray-400">
             {isReady ? '✅ MediaPipe listo' : '⏳ Preparando...'}
           </div>
           <div className="text-xs text-gray-500 mt-1">
-            Los puntos de colores muestran detección en tiempo real
+            Ángulo L: 45°-135° | Líneas azules = detección
           </div>
         </div>
       </div>
