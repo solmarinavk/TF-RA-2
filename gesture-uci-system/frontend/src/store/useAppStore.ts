@@ -21,7 +21,7 @@ interface AppState {
   rightHandLandmarks: HandLandmark[] | null;
   gestureProgress: number; // 0-100 para barra de progreso
   gestureType: 'none' | 'starting' | 'stopping'; // Qué gesto se está detectando
-  updateGestureState: (leftArmInL: boolean, rightArmInL: boolean) => void;
+  updateGestureState: (leftArmInL: boolean, rightArmInL: boolean, rightHandClosed?: boolean) => void;
 
   // === SELECTION ===
   selectedKeys: string[];
@@ -83,7 +83,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ handLandmarks: { left, right } });
   },
 
-  updateGestureState: (leftArmInL: boolean, rightArmInL: boolean) => {
+  updateGestureState: (leftArmInL: boolean, rightArmInL: boolean, rightHandClosed: boolean = false) => {
     const state = get();
     const now = Date.now();
 
@@ -117,10 +117,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ leftArmGestureStart: null, gestureProgress: 0, gestureType: 'none' });
     }
 
-    // TRANSICIÓN: RECORDING → PROCESSING (solo brazo DERECHO en L)
-    if (state.systemState === 'RECORDING' && rightArmInL) {
+    // TRANSICIÓN: RECORDING → PROCESSING (brazo DERECHO en L + mano cerrada/puño)
+    const stopCondition = rightArmInL && rightHandClosed;
+
+    if (state.systemState === 'RECORDING' && stopCondition) {
       if (state.rightArmGestureStart === null) {
-        console.log('⏱️ Brazo DERECHO en L detectado - Iniciando cuenta regresiva para finalizar...');
+        console.log('⏱️ Brazo DERECHO en L + PUÑO detectado - Iniciando cuenta regresiva para finalizar...');
         set({ rightArmGestureStart: now, gestureType: 'stopping' });
       } else {
         const elapsed = now - state.rightArmGestureStart;
@@ -128,7 +130,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({ gestureProgress: progress, gestureType: 'stopping' });
 
         if (elapsed >= L_POSE_DURATION) {
-          console.log('⚙️ PROCESSING - Brazo derecho en L confirmado');
+          console.log('⚙️ PROCESSING - Brazo derecho en L + puño confirmado');
           set({
             systemState: 'PROCESSING',
             rightArmGestureStart: null,
@@ -147,9 +149,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           }, 500);
         }
       }
-    } else if (!rightArmInL && state.systemState === 'RECORDING') {
+    } else if (!stopCondition && state.systemState === 'RECORDING') {
       if (state.rightArmGestureStart !== null) {
-        console.log('❌ Gesto de FINALIZACIÓN interrumpido - mantén el brazo derecho en L');
+        console.log('❌ Gesto de FINALIZACIÓN interrumpido - mantén brazo derecho en L + puño');
       }
       set({ rightArmGestureStart: null, gestureProgress: 0, gestureType: 'none' });
     }

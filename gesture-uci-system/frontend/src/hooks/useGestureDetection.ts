@@ -1,14 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { PoseLandmarker, HandLandmarker } from '@mediapipe/tasks-vision';
 import { PoseLandmark, HandLandmark } from '@/types';
-import { detectLPose } from '@/utils/geometry';
+import { detectLPose, isHandClosed } from '@/utils/geometry';
 import { useAppStore } from '@/store/useAppStore';
 
 /**
  * Hook que detecta gestos de brazo en L para control del sistema
  * - Brazo IZQUIERDO en L → Iniciar grabación
- * - Brazo DERECHO en L → Finalizar grabación
- * Sin necesidad de detectar estado de manos
+ * - Brazo DERECHO en L + mano cerrada (puño) → Finalizar grabación
  */
 export function useGestureDetection(
   poseLandmarker: PoseLandmarker | null,
@@ -80,6 +79,9 @@ export function useGestureDetection(
           if (poseLandmarks) {
             const lPoseStatus = detectLPose(poseLandmarks);
 
+            // Detectar si la mano derecha está cerrada (puño) - necesario para terminar grabación
+            const rightHandIsClosed = isHandClosed(rightHand);
+
             // Debug mejorado con throttle - mostrar SIEMPRE los ángulos
             const now = Date.now();
             if (now - lastLogTimeRef.current > 500) {
@@ -88,12 +90,15 @@ export function useGestureDetection(
               console.log('🔍 ÁNGULOS DETECTADOS:', {
                 brazoIzq: lPoseStatus.leftAngle ? `${lPoseStatus.leftAngle.toFixed(1)}° ${lPoseStatus.left ? '✅ EN L' : ''}` : 'no visible',
                 brazoDer: lPoseStatus.rightAngle ? `${lPoseStatus.rightAngle.toFixed(1)}° ${lPoseStatus.right ? '✅ EN L' : ''}` : 'no visible',
+                manoDerPuño: rightHandIsClosed ? '✊ PUÑO' : '✋ abierta/no detectada',
                 tolerancia: '45-135°'
               });
             }
 
-            // Actualizar estado del gesto - SIMPLIFICADO: solo brazos, sin manos
-            updateGestureState(lPoseStatus.left, lPoseStatus.right);
+            // Actualizar estado del gesto
+            // Para iniciar: solo brazo izquierdo en L
+            // Para terminar: brazo derecho en L + mano derecha en puño
+            updateGestureState(lPoseStatus.left, lPoseStatus.right, rightHandIsClosed);
           }
 
         } catch (error) {

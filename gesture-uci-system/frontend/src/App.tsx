@@ -112,7 +112,7 @@ function App() {
         <div>💪 <strong>Brazo IZQUIERDO en L</strong> - Iniciar (2s)</div>
         <div>👉 <strong>Dedo índice</strong> - Apuntar a teclas</div>
         <div>⏱️ <strong>Mantener 3 segundos</strong> - Confirmar</div>
-        <div>💪 <strong>Brazo DERECHO en L</strong> - Finalizar (2s)</div>
+        <div>✊ <strong>Brazo DERECHO en L + puño</strong> - Finalizar (2s)</div>
         <div className="pt-2 border-t border-gray-700">
           <div className="text-xs text-gray-400">
             {isReady ? '✅ MediaPipe listo' : '⏳ Preparando...'}
