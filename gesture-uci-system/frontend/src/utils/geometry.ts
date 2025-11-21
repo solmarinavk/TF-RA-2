@@ -1,5 +1,5 @@
 import { PoseLandmark, HandLandmark, PoseLandmarkIndex } from '@/types';
-import { L_POSE_ANGLE_TOLERANCE } from './constants';
+import { L_POSE_ANGLE_TOLERANCE, MIN_LANDMARK_VISIBILITY } from './constants';
 
 /**
  * Calcula el ángulo entre tres puntos usando producto punto
@@ -89,9 +89,9 @@ export function detectLeftLPose(landmarks: PoseLandmark[]): boolean {
 
   // Verificar visibilidad
   if (
-    !shoulder?.visibility || shoulder.visibility < 0.5 ||
-    !elbow?.visibility || elbow.visibility < 0.5 ||
-    !wrist?.visibility || wrist.visibility < 0.5
+    !shoulder?.visibility || shoulder.visibility < MIN_LANDMARK_VISIBILITY ||
+    !elbow?.visibility || elbow.visibility < MIN_LANDMARK_VISIBILITY ||
+    !wrist?.visibility || wrist.visibility < MIN_LANDMARK_VISIBILITY
   ) {
     return false;
   }
@@ -116,9 +116,9 @@ export function detectRightLPose(landmarks: PoseLandmark[]): boolean {
 
   // Verificar visibilidad
   if (
-    !shoulder?.visibility || shoulder.visibility < 0.5 ||
-    !elbow?.visibility || elbow.visibility < 0.5 ||
-    !wrist?.visibility || wrist.visibility < 0.5
+    !shoulder?.visibility || shoulder.visibility < MIN_LANDMARK_VISIBILITY ||
+    !elbow?.visibility || elbow.visibility < MIN_LANDMARK_VISIBILITY ||
+    !wrist?.visibility || wrist.visibility < MIN_LANDMARK_VISIBILITY
   ) {
     return false;
   }
@@ -157,18 +157,18 @@ export function detectLPose(landmarks: PoseLandmark[]): {
 
   // Calcular ángulo izquierdo
   if (
-    leftShoulder?.visibility && leftShoulder.visibility >= 0.5 &&
-    leftElbow?.visibility && leftElbow.visibility >= 0.5 &&
-    leftWrist?.visibility && leftWrist.visibility >= 0.5
+    leftShoulder?.visibility && leftShoulder.visibility >= MIN_LANDMARK_VISIBILITY &&
+    leftElbow?.visibility && leftElbow.visibility >= MIN_LANDMARK_VISIBILITY &&
+    leftWrist?.visibility && leftWrist.visibility >= MIN_LANDMARK_VISIBILITY
   ) {
     leftAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
   }
 
   // Calcular ángulo derecho
   if (
-    rightShoulder?.visibility && rightShoulder.visibility >= 0.5 &&
-    rightElbow?.visibility && rightElbow.visibility >= 0.5 &&
-    rightWrist?.visibility && rightWrist.visibility >= 0.5
+    rightShoulder?.visibility && rightShoulder.visibility >= MIN_LANDMARK_VISIBILITY &&
+    rightElbow?.visibility && rightElbow.visibility >= MIN_LANDMARK_VISIBILITY &&
+    rightWrist?.visibility && rightWrist.visibility >= MIN_LANDMARK_VISIBILITY
   ) {
     rightAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
   }
