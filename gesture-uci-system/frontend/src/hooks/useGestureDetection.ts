@@ -81,22 +81,52 @@ export function useGestureDetection(
             const anyArmInL = lPoseStatus.left || lPoseStatus.right;
 
             // Detectar estado de la mano correspondiente al brazo en L
-            let handOpen = false;
-            let handClosed = false;
-            let handSide = '';
-            let hasHand = false;
+          const leftHandStatus = leftHand
+            ? { open: isHandOpen(leftHand), closed: isHandClosed(leftHand) }
+            : null;
+          const rightHandStatus = rightHand
+            ? { open: isHandOpen(rightHand), closed: isHandClosed(rightHand) }
+            : null;
 
-            if (lPoseStatus.left && leftHand) {
-              handOpen = isHandOpen(leftHand);
-              handClosed = isHandClosed(leftHand);
+          let handOpen = false;
+          let handClosed = false;
+          let handSide = '';
+          let hasHand = false;
+
+          if (lPoseStatus.left) {
+            if (leftHandStatus) {
+              handOpen = leftHandStatus.open;
+              handClosed = leftHandStatus.closed;
               handSide = 'izquierda';
               hasHand = true;
-            } else if (lPoseStatus.right && rightHand) {
-              handOpen = isHandOpen(rightHand);
-              handClosed = isHandClosed(rightHand);
-              handSide = 'derecha';
+            } else if (rightHandStatus) {
+              // Fallback: si la mano izquierda no se ve, usa la derecha para no perder la activación
+              handOpen = rightHandStatus.open;
+              handClosed = rightHandStatus.closed;
+              handSide = 'derecha (fallback)';
               hasHand = true;
             }
+          } else if (lPoseStatus.right) {
+            if (rightHandStatus) {
+              handOpen = rightHandStatus.open;
+              handClosed = rightHandStatus.closed;
+              handSide = 'derecha';
+              hasHand = true;
+            } else if (leftHandStatus) {
+              // Fallback para brazo derecho usando mano izquierda si es lo único detectado
+              handOpen = leftHandStatus.open;
+              handClosed = leftHandStatus.closed;
+              handSide = 'izquierda (fallback)';
+              hasHand = true;
+            }
+          }
+
+          // Si no detectamos ninguna mano pero el brazo está en L, asumimos palma abierta para simplificar el inicio
+          if (anyArmInL && !hasHand) {
+            handOpen = true;
+            handClosed = false;
+            handSide = 'no detectada (fallback)';
+          }
 
             // Debug mejorado con throttle
             const now = Date.now();
