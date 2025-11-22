@@ -66,10 +66,10 @@ function App() {
   if (isLoading) {
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="text-center">
+        <div className="text-center px-4">
           <div className="text-6xl mb-6 animate-pulse">🏥</div>
-          <div className="text-white text-2xl font-bold mb-3">UCI Gesture System</div>
-          <div className="text-slate-400">Inicializando detección de poses y manos...</div>
+          <div className="text-white text-2xl sm:text-3xl font-bold mb-3">DOCommunication</div>
+          <div className="text-slate-400 text-sm sm:text-base">Inicializando sistema de gestos...</div>
           <div className="mt-6 w-48 h-1 bg-slate-700 rounded-full overflow-hidden mx-auto">
             <motion.div
               className="h-full bg-blue-500 rounded-full"
@@ -103,54 +103,52 @@ function App() {
 
   return (
     <div ref={containerRef} className="relative w-screen h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Video de cámara - fondo semitransparente */}
+      {/* Video de cámara */}
       <CameraFeed onVideoReady={setVideoElement} />
 
-      {/* Overlay de landmarks (puntos detectados) */}
+      {/* Overlay de landmarks */}
       <LandmarksOverlay canvasSize={canvasSize} />
 
-      {/* Header minimalista */}
-      <header className="fixed top-0 left-0 right-0 z-30 px-6 py-4 flex items-center justify-between">
+      {/* Header responsive */}
+      <header className="fixed top-0 left-0 right-0 z-30 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white tracking-tight">
-            UCI Gesture System
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight">
+            DOCommunication
           </h1>
-          <p className="text-xs text-slate-500">Comunicación Gestual Hospitalaria</p>
+          <p className="text-xs text-slate-500 hidden sm:block">Sistema de Comunicación Gestual</p>
         </div>
 
         {/* Indicador de estado */}
         <StateIndicator state={systemState} />
       </header>
 
-      {/* Área de círculos - centrada horizontalmente */}
-      <div className="fixed top-[18%] left-0 right-0 z-20 flex justify-center">
-        <div className="relative" style={{ width: '90%', maxWidth: '1400px' }}>
-          <VirtualKeyboard
-            keys={graph.nodes.size > 0 ? Array.from(graph.nodes.values()) : UCI_KEYS}
-            fingerPosition={fingerPosition}
-            canvasSize={canvasSize}
-            hoveredKey={hoveredKey}
-            hoverProgress={hoverProgress}
-            isRecording={systemState === 'RECORDING'}
-          />
-        </div>
+      {/* Área de círculos - completamente responsive */}
+      <div className="fixed top-[15%] sm:top-[18%] left-0 right-0 z-20">
+        <VirtualKeyboard
+          keys={graph.nodes.size > 0 ? Array.from(graph.nodes.values()) : UCI_KEYS}
+          fingerPosition={fingerPosition}
+          canvasSize={canvasSize}
+          hoveredKey={hoveredKey}
+          hoverProgress={hoverProgress}
+          isRecording={systemState === 'RECORDING'}
+        />
       </div>
 
-      {/* Panel de mensaje actual - DEBAJO de los círculos */}
+      {/* Panel de mensaje actual - adaptativo */}
       {systemState !== 'IDLE' && (
         <motion.div
-          className="fixed top-[38%] left-1/2 -translate-x-1/2 z-30 bg-slate-800/90 backdrop-blur-md rounded-xl p-5 text-white min-w-[300px] max-w-[400px] shadow-2xl border border-slate-700/50"
+          className="fixed top-[45%] sm:top-[40%] left-1/2 -translate-x-1/2 z-30 bg-slate-800/90 backdrop-blur-md rounded-xl p-4 sm:p-5 text-white w-[90%] sm:w-auto min-w-[280px] sm:min-w-[300px] max-w-[400px] shadow-2xl border border-slate-700/50"
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.4, type: 'spring' }}
         >
-          <h3 className="font-semibold text-base mb-4 flex items-center gap-2 text-slate-200">
-            <span className="text-lg">💬</span>
+          <h3 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4 flex items-center gap-2 text-slate-200">
+            <span className="text-base sm:text-lg">💬</span>
             Mensaje en construcción
           </h3>
 
           {currentMessage.length === 0 ? (
-            <div className="text-slate-500 text-sm text-center py-4">
+            <div className="text-slate-500 text-xs sm:text-sm text-center py-3 sm:py-4">
               Apunta a un círculo para seleccionar...
             </div>
           ) : (
@@ -160,7 +158,7 @@ function App() {
                 return (
                   <motion.div
                     key={i}
-                    className="px-3 py-1.5 rounded-full text-sm font-medium text-white shadow-md"
+                    className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium text-white shadow-md"
                     style={{ backgroundColor: keyNode?.color || '#3b82f6' }}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
@@ -173,34 +171,34 @@ function App() {
             </div>
           )}
 
-          <div className="mt-4 pt-3 border-t border-slate-700/50 flex justify-between items-center text-xs text-slate-500">
+          <div className="mt-3 sm:mt-4 pt-3 border-t border-slate-700/50 flex justify-between items-center text-xs text-slate-500">
             <span>{selectedKeys.length} selección{selectedKeys.length !== 1 ? 'es' : ''}</span>
-            <span className="text-slate-600">Puño derecho para finalizar</span>
+            <span className="text-slate-600 hidden sm:inline">Puño derecho para finalizar</span>
           </div>
         </motion.div>
       )}
 
-      {/* Panel de instrucciones - esquina inferior izquierda, compacto */}
-      <div className="fixed bottom-4 left-4 z-40 bg-slate-800/80 backdrop-blur-sm rounded-lg p-3 text-white text-xs space-y-1.5 max-w-[220px] border border-slate-700/30">
-        <div className="font-semibold text-slate-300 mb-2 text-sm">Controles</div>
-        <div className="flex items-center gap-2">
-          <span className="w-5 text-center">💪</span>
-          <span className="text-slate-400">Brazo izq. en L → Iniciar</span>
+      {/* Panel de instrucciones - responsive */}
+      <div className="fixed bottom-3 sm:bottom-4 left-3 sm:left-4 z-40 bg-slate-800/80 backdrop-blur-sm rounded-lg p-2.5 sm:p-3 text-white text-xs space-y-1 sm:space-y-1.5 max-w-[200px] sm:max-w-[220px] border border-slate-700/30">
+        <div className="font-semibold text-slate-300 mb-1.5 sm:mb-2 text-xs sm:text-sm">Controles</div>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <span className="w-4 sm:w-5 text-center text-sm">💪</span>
+          <span className="text-slate-400 text-[10px] sm:text-xs">Brazo izq. en L → Iniciar</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="w-5 text-center">👆</span>
-          <span className="text-slate-400">Dedo índice → Seleccionar</span>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <span className="w-4 sm:w-5 text-center text-sm">👆</span>
+          <span className="text-slate-400 text-[10px] sm:text-xs">Dedo índice → Seleccionar</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="w-5 text-center">✊</span>
-          <span className="text-slate-400">Brazo der. + puño → Fin</span>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <span className="w-4 sm:w-5 text-center text-sm">✊</span>
+          <span className="text-slate-400 text-[10px] sm:text-xs">Brazo der. + puño → Fin</span>
         </div>
-        <div className="pt-2 border-t border-slate-700/50 text-slate-600">
+        <div className="pt-1.5 sm:pt-2 border-t border-slate-700/50 text-slate-600 text-[10px] sm:text-xs">
           {isReady ? '● Sistema listo' : '○ Preparando...'}
         </div>
       </div>
 
-      {/* Panel de métricas completo - aparece al finalizar */}
+      {/* Panel de métricas completo */}
       {systemState === 'DISPLAYING' && metrics && (
         <MetricsPanel
           metrics={metrics}
@@ -227,11 +225,11 @@ function App() {
             ease: 'easeInOut'
           }}
         >
-          <div className="w-5 h-5 bg-yellow-400 rounded-full border-3 border-white shadow-lg shadow-yellow-400/50" />
+          <div className="w-4 h-4 sm:w-5 sm:h-5 bg-yellow-400 rounded-full border-2 sm:border-3 border-white shadow-lg shadow-yellow-400/50" />
         </motion.div>
       )}
 
-      {/* Barra de progreso de gestos - centrada en la parte superior */}
+      {/* Barra de progreso de gestos */}
       <GestureProgressBar
         progress={gestureProgress}
         label={gestureType === 'starting' ? 'Iniciando grabación...' : 'Finalizando...'}
@@ -239,7 +237,7 @@ function App() {
         visible={gestureType !== 'none'}
       />
 
-      {/* Sutil overlay de gradiente para mejor contraste */}
+      {/* Overlay de gradiente para contraste */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/40 pointer-events-none z-10" />
     </div>
   );

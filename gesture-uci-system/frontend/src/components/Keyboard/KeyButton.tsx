@@ -38,7 +38,17 @@ export const KeyButton: React.FC<KeyButtonProps> = ({
     setIsProximate(distance < proximityThreshold);
   }, [fingerPosition, keyNode.radius]);
 
-  const size = keyNode.radius * 2;
+  // Tamaño responsive basado en viewport width
+  const getResponsiveSize = () => {
+    const vw = window.innerWidth;
+    if (vw < 640) return 70;  // móvil
+    if (vw < 768) return 80;  // tablet pequeño
+    if (vw < 1024) return 90; // tablet
+    if (vw < 1280) return 100; // laptop pequeño (14")
+    return 110; // laptop grande (16"+)
+  };
+
+  const size = getResponsiveSize();
 
   return (
     <motion.div
@@ -103,11 +113,11 @@ export const KeyButton: React.FC<KeyButtonProps> = ({
               <circle
                 cx="50%"
                 cy="50%"
-                r={keyNode.radius - 5}
+                r={(size / 2) - 5}
                 fill="none"
                 stroke="white"
                 strokeWidth="5"
-                strokeDasharray={`${(hoverProgress / 100) * (2 * Math.PI * (keyNode.radius - 5))} ${2 * Math.PI * (keyNode.radius - 5)}`}
+                strokeDasharray={`${(hoverProgress / 100) * (2 * Math.PI * ((size / 2) - 5))} ${2 * Math.PI * ((size / 2) - 5)}`}
                 strokeLinecap="round"
                 className="transition-all duration-100"
               />
@@ -119,7 +129,7 @@ export const KeyButton: React.FC<KeyButtonProps> = ({
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.15 }}
-              style={{ fontSize: `${keyNode.radius * 0.5}px` }}
+              style={{ fontSize: `${size * 0.25}px` }}
             >
               {Math.round(hoverProgress)}%
             </motion.div>

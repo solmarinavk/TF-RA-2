@@ -36,49 +36,51 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = ({ metrics, keys, onRes
 
   return (
     <motion.div
-      className="fixed inset-4 md:inset-8 z-50 bg-slate-900/98 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 flex flex-col overflow-hidden"
+      className="fixed inset-2 sm:inset-4 md:inset-6 lg:inset-8 z-50 bg-slate-900/98 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-2xl border border-slate-700/50 flex flex-col overflow-hidden"
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.3, type: 'spring' }}
     >
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <span>📊</span> Análisis Completo del Grafo de Interacción
+      {/* Header - responsive */}
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-700/50 flex items-start sm:items-center justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-base sm:text-lg md:text-xl font-bold text-white flex items-center gap-2">
+            <span className="text-lg sm:text-xl">📊</span>
+            <span className="truncate">DOCommunication Analytics</span>
           </h2>
-          <p className="text-sm text-slate-400 mt-1">
-            Métricas estructurales, centralidades, robustez y modelos de difusión
+          <p className="text-xs sm:text-sm text-slate-400 mt-0.5 sm:mt-1 line-clamp-1">
+            Análisis completo del grafo de interacción
           </p>
         </div>
         <button
           onClick={onReset}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors text-sm"
+          className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors text-xs sm:text-sm flex-shrink-0"
         >
-          Nuevo Mensaje
+          <span className="hidden sm:inline">Nuevo Mensaje</span>
+          <span className="sm:hidden">Nuevo</span>
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="px-4 py-2 border-b border-slate-700/30 flex gap-1 overflow-x-auto">
+      {/* Tabs - scrollable horizontal en móvil */}
+      <div className="px-2 sm:px-4 py-2 border-b border-slate-700/30 flex gap-1 overflow-x-auto scrollbar-thin">
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1 sm:gap-1.5 flex-shrink-0 ${
               activeTab === tab.id
                 ? 'bg-blue-600 text-white'
                 : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700/50'
             }`}
           >
-            <span>{tab.icon}</span>
-            {tab.label}
+            <span className="text-sm sm:text-base">{tab.icon}</span>
+            <span className="hidden xs:inline">{tab.label}</span>
           </button>
         ))}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      {/* Content - responsive padding */}
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
         <AnimatePresence mode="wait">
           {activeTab === 'centralidad' && (
             <motion.div

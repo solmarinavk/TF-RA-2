@@ -20,18 +20,20 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
   isRecording
 }) => {
   return (
-    <div className="flex justify-center items-center gap-2 md:gap-3 lg:gap-4 flex-wrap px-4 pointer-events-none">
-      {keys.map(key => (
-        <KeyButton
-          key={key.id}
-          keyNode={key}
-          fingerPosition={fingerPosition}
-          canvasSize={canvasSize}
-          hoverProgress={hoveredKey === key.id ? hoverProgress : 0}
-          isHovered={hoveredKey === key.id}
-          isRecording={isRecording}
-        />
-      ))}
+    <div className="w-full max-w-7xl mx-auto px-2 sm:px-4">
+      <div className="flex flex-wrap justify-center items-center gap-1.5 sm:gap-2 md:gap-3 lg:gap-4 pointer-events-none">
+        {keys.map(key => (
+          <KeyButton
+            key={key.id}
+            keyNode={key}
+            fingerPosition={fingerPosition}
+            canvasSize={canvasSize}
+            hoverProgress={hoveredKey === key.id ? hoverProgress : 0}
+            isHovered={hoveredKey === key.id}
+            isRecording={isRecording}
+          />
+        ))}
+      </div>
     </div>
   );
 };
