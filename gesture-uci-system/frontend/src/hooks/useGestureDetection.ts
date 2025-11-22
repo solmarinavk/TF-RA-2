@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { PoseLandmarker, HandLandmarker } from '@mediapipe/tasks-vision';
 import { PoseLandmark, HandLandmark } from '@/types';
-import { detectLPose, isHandClosed } from '@/utils/geometry';
+import { detectLPose, isThumbsUp } from '@/utils/geometry';
 import { useAppStore } from '@/store/useAppStore';
 
 /**
  * Hook que detecta gestos de brazo en L para control del sistema
- * - Brazo IZQUIERDO en L → Iniciar grabación
- * - Brazo DERECHO en L + mano cerrada (puño) → Finalizar grabación
+ * - Brazo IZQUIERDO en L (completamente visible) → Iniciar grabación
+ * - Brazo DERECHO en L + pulgar arriba (👍) → Finalizar grabación
  */
 export function useGestureDetection(
   poseLandmarker: PoseLandmarker | null,
@@ -79,8 +79,8 @@ export function useGestureDetection(
           if (poseLandmarks) {
             const lPoseStatus = detectLPose(poseLandmarks);
 
-            // Detectar si la mano derecha está cerrada (puño) - necesario para terminar grabación
-            const rightHandIsClosed = isHandClosed(rightHand);
+            // Detectar si la mano derecha está haciendo pulgar arriba (👍) - necesario para terminar grabación
+            const rightHandThumbsUp = isThumbsUp(rightHand);
 
             // Debug mejorado con throttle - mostrar SIEMPRE los ángulos
             const now = Date.now();
@@ -89,16 +89,17 @@ export function useGestureDetection(
 
               console.log('🔍 ÁNGULOS DETECTADOS:', {
                 brazoIzq: lPoseStatus.leftAngle ? `${lPoseStatus.leftAngle.toFixed(1)}° ${lPoseStatus.left ? '✅ EN L' : ''}` : 'no visible',
+                brazoIzqVisible: lPoseStatus.leftVisibleInFrame ? '✅ visible en pantalla' : '❌ fuera de pantalla',
                 brazoDer: lPoseStatus.rightAngle ? `${lPoseStatus.rightAngle.toFixed(1)}° ${lPoseStatus.right ? '✅ EN L' : ''}` : 'no visible',
-                manoDerPuño: rightHandIsClosed ? '✊ PUÑO' : '✋ abierta/no detectada',
+                manoDer: rightHandThumbsUp ? '👍 PULGAR ARRIBA' : '✋ otra posición/no detectada',
                 tolerancia: '45-135°'
               });
             }
 
             // Actualizar estado del gesto
-            // Para iniciar: solo brazo izquierdo en L
-            // Para terminar: brazo derecho en L + mano derecha en puño
-            updateGestureState(lPoseStatus.left, lPoseStatus.right, rightHandIsClosed);
+            // Para iniciar: solo brazo izquierdo en L (completamente visible en pantalla)
+            // Para terminar: brazo derecho en L + pulgar arriba (👍)
+            updateGestureState(lPoseStatus.left, lPoseStatus.right, rightHandThumbsUp);
           }
 
         } catch (error) {

@@ -134,12 +134,12 @@ function App() {
         />
       </div>
 
-      {/* Panel de mensaje actual - adaptativo */}
+      {/* Panel de mensaje actual - pegado a la derecha */}
       {systemState !== 'IDLE' && (
         <motion.div
-          className="fixed top-[45%] sm:top-[40%] left-1/2 -translate-x-1/2 z-30 bg-slate-800/90 backdrop-blur-md rounded-xl p-4 sm:p-5 text-white w-[90%] sm:w-auto min-w-[280px] sm:min-w-[300px] max-w-[400px] shadow-2xl border border-slate-700/50"
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
+          className="fixed top-[45%] sm:top-[40%] right-3 sm:right-4 md:right-6 z-30 bg-slate-800/90 backdrop-blur-md rounded-xl p-4 sm:p-5 text-white w-[calc(100%-1.5rem)] sm:w-auto min-w-[280px] sm:min-w-[300px] max-w-[400px] shadow-2xl border border-slate-700/50"
+          initial={{ x: 400, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.4, type: 'spring' }}
         >
           <h3 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4 flex items-center gap-2 text-slate-200">
@@ -173,7 +173,7 @@ function App() {
 
           <div className="mt-3 sm:mt-4 pt-3 border-t border-slate-700/50 flex justify-between items-center text-xs text-slate-500">
             <span>{selectedKeys.length} selección{selectedKeys.length !== 1 ? 'es' : ''}</span>
-            <span className="text-slate-600 hidden sm:inline">Puño derecho para finalizar</span>
+            <span className="text-slate-600 hidden sm:inline">Brazo der. L + 👍 para finalizar</span>
           </div>
         </motion.div>
       )}
@@ -190,8 +190,8 @@ function App() {
           <span className="text-slate-400 text-[10px] sm:text-xs">Dedo índice → Seleccionar</span>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <span className="w-4 sm:w-5 text-center text-sm">✊</span>
-          <span className="text-slate-400 text-[10px] sm:text-xs">Brazo der. + puño → Fin</span>
+          <span className="w-4 sm:w-5 text-center text-sm">👍</span>
+          <span className="text-slate-400 text-[10px] sm:text-xs">Brazo der. + pulgar → Fin</span>
         </div>
         <div className="pt-1.5 sm:pt-2 border-t border-slate-700/50 text-slate-600 text-[10px] sm:text-xs">
           {isReady ? '● Sistema listo' : '○ Preparando...'}

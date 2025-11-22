@@ -130,18 +130,57 @@ export function detectRightLPose(landmarks: PoseLandmark[]): boolean {
 }
 
 /**
+ * Verifica si un brazo está completamente visible en pantalla
+ * @param shoulder - Landmark del hombro
+ * @param elbow - Landmark del codo
+ * @param wrist - Landmark de la muñeca
+ * @returns true si los 3 puntos están dentro de los límites visibles
+ */
+function isArmVisibleInFrame(
+  shoulder: PoseLandmark,
+  elbow: PoseLandmark,
+  wrist: PoseLandmark
+): boolean {
+  // Márgenes para considerar visible (5% del borde de la pantalla)
+  const margin = 0.05;
+  const minX = margin;
+  const maxX = 1 - margin;
+  const minY = margin;
+  const maxY = 1 - margin;
+
+  const points = [shoulder, elbow, wrist];
+
+  for (const point of points) {
+    if (point.x < minX || point.x > maxX || point.y < minY || point.y > maxY) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
  * Detecta ambos brazos en postura L
  * @param landmarks - Array de pose landmarks
- * @returns Objeto con estado de cada brazo
+ * @returns Objeto con estado de cada brazo y si está visible en pantalla
  */
 export function detectLPose(landmarks: PoseLandmark[]): {
   left: boolean;
   right: boolean;
   leftAngle: number | null;
   rightAngle: number | null;
+  leftVisibleInFrame: boolean;
+  rightVisibleInFrame: boolean;
 } {
   if (!landmarks || landmarks.length < 33) {
-    return { left: false, right: false, leftAngle: null, rightAngle: null };
+    return {
+      left: false,
+      right: false,
+      leftAngle: null,
+      rightAngle: null,
+      leftVisibleInFrame: false,
+      rightVisibleInFrame: false
+    };
   }
 
   const leftShoulder = landmarks[PoseLandmarkIndex.LEFT_SHOULDER];
@@ -154,6 +193,8 @@ export function detectLPose(landmarks: PoseLandmark[]): {
 
   let leftAngle: number | null = null;
   let rightAngle: number | null = null;
+  let leftVisibleInFrame = false;
+  let rightVisibleInFrame = false;
 
   // Calcular ángulo izquierdo
   if (
@@ -162,6 +203,7 @@ export function detectLPose(landmarks: PoseLandmark[]): {
     leftWrist?.visibility && leftWrist.visibility >= MIN_LANDMARK_VISIBILITY
   ) {
     leftAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
+    leftVisibleInFrame = isArmVisibleInFrame(leftShoulder, leftElbow, leftWrist);
   }
 
   // Calcular ángulo derecho
@@ -171,13 +213,16 @@ export function detectLPose(landmarks: PoseLandmark[]): {
     rightWrist?.visibility && rightWrist.visibility >= MIN_LANDMARK_VISIBILITY
   ) {
     rightAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
+    rightVisibleInFrame = isArmVisibleInFrame(rightShoulder, rightElbow, rightWrist);
   }
 
   return {
-    left: leftAngle !== null && Math.abs(leftAngle - 90) < L_POSE_ANGLE_TOLERANCE,
+    left: leftAngle !== null && Math.abs(leftAngle - 90) < L_POSE_ANGLE_TOLERANCE && leftVisibleInFrame,
     right: rightAngle !== null && Math.abs(rightAngle - 90) < L_POSE_ANGLE_TOLERANCE,
     leftAngle,
-    rightAngle
+    rightAngle,
+    leftVisibleInFrame,
+    rightVisibleInFrame
   };
 }
 
@@ -326,4 +371,36 @@ export function isHandClosed(handLandmarks: HandLandmark[] | null): boolean {
 
   // MUY ESTRICTO: todos los 5 dedos deben estar cerrados
   return closedFingers >= 5;
+}
+
+/**
+ * Detecta gesto de pulgar arriba (👍)
+ * Para finalizar grabación - más fácil que puño cerrado
+ * @param handLandmarks - Array de hand landmarks (21 puntos)
+ * @returns true si el pulgar está levantado y los demás dedos cerrados
+ */
+export function isThumbsUp(handLandmarks: HandLandmark[] | null): boolean {
+  if (!handLandmarks || handLandmarks.length < 21) return false;
+
+  const thumbTip = handLandmarks[4];
+  const thumbIP = handLandmarks[3];
+  const indexTip = handLandmarks[8];
+  const middleTip = handLandmarks[12];
+  const ringTip = handLandmarks[16];
+  const pinkyTip = handLandmarks[20];
+  const indexMCP = handLandmarks[5];
+
+  // 1. El pulgar debe estar extendido hacia arriba (más permisivo)
+  const thumbExtended = thumbTip.y < thumbIP.y;
+
+  // 2. Los otros dedos deben estar doblados (cerca del MCP del índice)
+  const indexFolded = distance3D(indexTip, indexMCP) < distance3D(thumbTip, indexMCP) * 0.8;
+  const middleFolded = distance3D(middleTip, indexMCP) < distance3D(thumbTip, indexMCP) * 0.8;
+  const ringFolded = distance3D(ringTip, indexMCP) < distance3D(thumbTip, indexMCP) * 0.8;
+  const pinkyFolded = distance3D(pinkyTip, indexMCP) < distance3D(thumbTip, indexMCP) * 0.8;
+
+  // Al menos 2 de 4 dedos doblados y pulgar extendido (más permisivo)
+  const foldedCount = [indexFolded, middleFolded, ringFolded, pinkyFolded].filter(Boolean).length;
+
+  return thumbExtended && foldedCount >= 2;
 }
