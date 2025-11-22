@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: docommunication-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - CORS_ORIGINS=http://localhost:5173,https://*.netlify.app
+    volumes:
+      - ./data:/app/data
+      - ./visualizations:/app/visualizations
+    restart: unless-stopped
+
+  # Opcional: Base de datos PostgreSQL
+  # db:
+  #   image: postgres:15
+  #   container_name: docommunication-db
+  #   environment:
+  #     POSTGRES_DB: docommunication
+  #     POSTGRES_USER: docommunication
+  #     POSTGRES_PASSWORD: changeme
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+# volumes:
+#   postgres_data:
