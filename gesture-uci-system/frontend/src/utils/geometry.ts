@@ -1,6 +1,16 @@
 import { PoseLandmark, HandLandmark, PoseLandmarkIndex } from '@/types';
 import { L_POSE_ANGLE_TOLERANCE, MIN_LANDMARK_VISIBILITY } from './constants';
 
+// Detectar si es móvil para ajustar parámetros de detección
+const isMobileDevice = () => {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 768;
+};
+
+// En móvil usamos umbral de visibilidad más bajo (0.3 vs 0.5 en desktop)
+// porque las cámaras móviles típicamente tienen menor confianza
+const getMinVisibility = () => isMobileDevice() ? 0.3 : MIN_LANDMARK_VISIBILITY;
+
 /**
  * Calcula el ángulo entre tres puntos usando producto punto
  * @param p1 - Primer punto (ej: hombro)
@@ -129,12 +139,6 @@ export function detectRightLPose(landmarks: PoseLandmark[]): boolean {
   return Math.abs(angle - 90) < L_POSE_ANGLE_TOLERANCE;
 }
 
-// Detectar si es móvil para usar margen más permisivo
-const isMobileDevice = () => {
-  if (typeof window === 'undefined') return false;
-  return window.innerWidth < 768;
-};
-
 /**
  * Verifica si un brazo está completamente visible en pantalla
  * @param shoulder - Landmark del hombro
@@ -204,11 +208,14 @@ export function detectLPose(landmarks: PoseLandmark[], customTolerance?: number)
   let leftVisibleInFrame = false;
   let rightVisibleInFrame = false;
 
+  // Umbral de visibilidad (más bajo en móvil)
+  const minVisibility = getMinVisibility();
+
   // Calcular ángulo izquierdo
   if (
-    leftShoulder?.visibility && leftShoulder.visibility >= MIN_LANDMARK_VISIBILITY &&
-    leftElbow?.visibility && leftElbow.visibility >= MIN_LANDMARK_VISIBILITY &&
-    leftWrist?.visibility && leftWrist.visibility >= MIN_LANDMARK_VISIBILITY
+    leftShoulder?.visibility && leftShoulder.visibility >= minVisibility &&
+    leftElbow?.visibility && leftElbow.visibility >= minVisibility &&
+    leftWrist?.visibility && leftWrist.visibility >= minVisibility
   ) {
     leftAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
     leftVisibleInFrame = isArmVisibleInFrame(leftShoulder, leftElbow, leftWrist);
@@ -216,16 +223,20 @@ export function detectLPose(landmarks: PoseLandmark[], customTolerance?: number)
 
   // Calcular ángulo derecho
   if (
-    rightShoulder?.visibility && rightShoulder.visibility >= MIN_LANDMARK_VISIBILITY &&
-    rightElbow?.visibility && rightElbow.visibility >= MIN_LANDMARK_VISIBILITY &&
-    rightWrist?.visibility && rightWrist.visibility >= MIN_LANDMARK_VISIBILITY
+    rightShoulder?.visibility && rightShoulder.visibility >= minVisibility &&
+    rightElbow?.visibility && rightElbow.visibility >= minVisibility &&
+    rightWrist?.visibility && rightWrist.visibility >= minVisibility
   ) {
     rightAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
     rightVisibleInFrame = isArmVisibleInFrame(rightShoulder, rightElbow, rightWrist);
   }
 
+  // En móvil, no requerimos que el brazo esté completamente visible en pantalla
+  // porque las cámaras móviles tienen diferente campo de visión
+  const mobile = isMobileDevice();
+
   return {
-    left: leftAngle !== null && Math.abs(leftAngle - 90) < tolerance && leftVisibleInFrame,
+    left: leftAngle !== null && Math.abs(leftAngle - 90) < tolerance && (mobile || leftVisibleInFrame),
     right: rightAngle !== null && Math.abs(rightAngle - 90) < tolerance,
     leftAngle,
     rightAngle,

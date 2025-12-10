@@ -8,6 +8,12 @@
 // Nota: En producción, estos imports vendrían de @mediapipe/tasks-vision
 // Para esta implementación, proveeremos tipos mock que serán compatibles
 
+// Detectar si es móvil para ajustar umbrales de confianza
+const isMobileDevice = () => {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 768;
+};
+
 export interface MediaPipeConfig {
   modelAssetPath: string;
   delegate?: 'GPU' | 'CPU';
@@ -28,33 +34,41 @@ export const HAND_LANDMARKER_CONFIG: MediaPipeConfig = {
 
 /**
  * Configuración por defecto para PoseLandmarker
+ * En móvil usamos umbrales más bajos (0.3) porque las cámaras tienen menor calidad
  */
-export const getPoseLandmarkerOptions = () => ({
-  baseOptions: {
-    modelAssetPath: POSE_LANDMARKER_CONFIG.modelAssetPath,
-    delegate: POSE_LANDMARKER_CONFIG.delegate
-  },
-  runningMode: POSE_LANDMARKER_CONFIG.runningMode,
-  numPoses: 1,
-  minPoseDetectionConfidence: 0.5,
-  minPosePresenceConfidence: 0.5,
-  minTrackingConfidence: 0.5
-});
+export const getPoseLandmarkerOptions = () => {
+  const confidence = isMobileDevice() ? 0.3 : 0.5;
+  return {
+    baseOptions: {
+      modelAssetPath: POSE_LANDMARKER_CONFIG.modelAssetPath,
+      delegate: POSE_LANDMARKER_CONFIG.delegate
+    },
+    runningMode: POSE_LANDMARKER_CONFIG.runningMode,
+    numPoses: 1,
+    minPoseDetectionConfidence: confidence,
+    minPosePresenceConfidence: confidence,
+    minTrackingConfidence: confidence
+  };
+};
 
 /**
  * Configuración por defecto para HandLandmarker
+ * En móvil usamos umbrales más bajos (0.3) porque las cámaras tienen menor calidad
  */
-export const getHandLandmarkerOptions = () => ({
-  baseOptions: {
-    modelAssetPath: HAND_LANDMARKER_CONFIG.modelAssetPath,
-    delegate: HAND_LANDMARKER_CONFIG.delegate
-  },
-  runningMode: HAND_LANDMARKER_CONFIG.runningMode,
-  numHands: 2,
-  minHandDetectionConfidence: 0.5,
-  minHandPresenceConfidence: 0.5,
-  minTrackingConfidence: 0.5
-});
+export const getHandLandmarkerOptions = () => {
+  const confidence = isMobileDevice() ? 0.3 : 0.5;
+  return {
+    baseOptions: {
+      modelAssetPath: HAND_LANDMARKER_CONFIG.modelAssetPath,
+      delegate: HAND_LANDMARKER_CONFIG.delegate
+    },
+    runningMode: HAND_LANDMARKER_CONFIG.runningMode,
+    numHands: 2,
+    minHandDetectionConfidence: confidence,
+    minHandPresenceConfidence: confidence,
+    minTrackingConfidence: confidence
+  };
+};
 
 /**
  * Inicializa MediaPipe FilesetResolver (necesario para cargar WASM)
