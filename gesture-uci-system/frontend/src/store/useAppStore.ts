@@ -3,6 +3,15 @@ import { SystemState, PoseLandmark, HandLandmark, GraphEdge, GraphMetrics } from
 import { UCI_KEYS, L_POSE_DURATION } from '@/utils/constants';
 import { InteractionGraph, createInteractionGraph } from '@/utils/graphEngine';
 
+// Detectar si es móvil para usar tiempos más largos
+const isMobile = () => {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 768;
+};
+
+// En móvil usamos 4 segundos para evitar activaciones accidentales, en desktop 2 segundos
+const getGestureDuration = () => isMobile() ? 4000 : L_POSE_DURATION;
+
 interface AppState {
   // === SISTEMA FSM ===
   systemState: SystemState;
@@ -86,18 +95,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   updateGestureState: (leftArmInL: boolean, rightArmInL: boolean, rightHandClosed: boolean = false) => {
     const state = get();
     const now = Date.now();
+    const gestureDuration = getGestureDuration(); // 3s en móvil, 2s en desktop
 
     // TRANSICIÓN: IDLE → RECORDING (solo brazo IZQUIERDO en L)
     if (state.systemState === 'IDLE' && leftArmInL) {
       if (state.leftArmGestureStart === null) {
-        console.log('⏱️ Brazo IZQUIERDO en L detectado - Iniciando cuenta regresiva...');
+        console.log(`⏱️ Brazo IZQUIERDO en L detectado - Iniciando cuenta regresiva (${gestureDuration/1000}s)...`);
         set({ leftArmGestureStart: now, gestureType: 'starting' });
       } else {
         const elapsed = now - state.leftArmGestureStart;
-        const progress = Math.min((elapsed / L_POSE_DURATION) * 100, 100);
+        const progress = Math.min((elapsed / gestureDuration) * 100, 100);
         set({ gestureProgress: progress, gestureType: 'starting' });
 
-        if (elapsed >= L_POSE_DURATION) {
+        if (elapsed >= gestureDuration) {
           console.log('🎬 RECORDING STARTED - Brazo izquierdo en L confirmado');
           set({
             systemState: 'RECORDING',
@@ -122,14 +132,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     if (state.systemState === 'RECORDING' && stopCondition) {
       if (state.rightArmGestureStart === null) {
-        console.log('⏱️ Brazo DERECHO en L + PUÑO detectado - Iniciando cuenta regresiva para finalizar...');
+        console.log(`⏱️ Brazo DERECHO en L + 👍 detectado - Iniciando cuenta regresiva (${gestureDuration/1000}s)...`);
         set({ rightArmGestureStart: now, gestureType: 'stopping' });
       } else {
         const elapsed = now - state.rightArmGestureStart;
-        const progress = Math.min((elapsed / L_POSE_DURATION) * 100, 100);
+        const progress = Math.min((elapsed / gestureDuration) * 100, 100);
         set({ gestureProgress: progress, gestureType: 'stopping' });
 
-        if (elapsed >= L_POSE_DURATION) {
+        if (elapsed >= gestureDuration) {
           console.log('⚙️ PROCESSING - Brazo derecho en L + puño confirmado');
           set({
             systemState: 'PROCESSING',
