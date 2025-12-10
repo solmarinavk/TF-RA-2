@@ -12,20 +12,20 @@ export function GestureProgressBar({ progress, label, color, visible }: GestureP
 
   return (
     <>
-      {/* Versión móvil - modal compacto centrado en pantalla */}
+      {/* Versión móvil - modal compacto perfectamente centrado */}
       <motion.div
-        className="fixed inset-0 z-50 flex items-center justify-center p-6 md:hidden"
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 md:hidden"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       >
-        <div className="bg-gray-900/95 backdrop-blur-lg rounded-lg p-2.5 shadow-2xl border border-white/80 w-full max-w-[160px]">
-          <div className="text-center mb-1.5">
-            <div className="text-base mb-0.5">{progress < 100 ? '⏱️' : '✅'}</div>
+        <div className="bg-gray-900/95 backdrop-blur-lg rounded-lg p-3 shadow-2xl border-2 border-white/90 w-[140px]">
+          <div className="text-center mb-2">
+            <div className="text-lg mb-1">{progress < 100 ? '⏱️' : '✅'}</div>
             <h3 className="text-white text-[9px] font-semibold leading-tight">{label}</h3>
           </div>
-          <div className="relative w-full h-4 bg-gray-700 rounded-full overflow-hidden">
+          <div className="relative w-full h-5 bg-gray-700 rounded-full overflow-hidden">
             <motion.div
               className="absolute inset-y-0 left-0 rounded-full"
               style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}80` }}
@@ -34,7 +34,7 @@ export function GestureProgressBar({ progress, label, color, visible }: GestureP
               transition={{ duration: 0.1, ease: 'linear' }}
             />
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-white font-bold text-xs drop-shadow-lg">{Math.round(progress)}%</span>
+              <span className="text-white font-bold text-sm drop-shadow-lg">{Math.round(progress)}%</span>
             </div>
           </div>
         </div>
