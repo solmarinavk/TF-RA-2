@@ -10,8 +10,8 @@ const isMobile = () => {
   return window.innerWidth < 768;
 };
 
-// En móvil usamos tolerancia de 25° (balance), en desktop 35°
-const getAngleTolerance = () => isMobile() ? 25 : 35;
+// Mismo ángulo para móvil y desktop (35°), la diferencia está en el tiempo (3s vs 2s)
+const getAngleTolerance = () => 35;
 
 /**
  * Hook que detecta gestos de brazo en L para control del sistema
@@ -86,7 +86,7 @@ export function useGestureDetection(
 
           // Analizar gestos de brazos en L
           if (poseLandmarks) {
-            // En móvil usar tolerancia más estricta (20° vs 35° en desktop)
+            // Tolerancia de ángulo (35° tanto en móvil como en desktop)
             const tolerance = getAngleTolerance();
             const lPoseStatus = detectLPose(poseLandmarks, tolerance);
 
