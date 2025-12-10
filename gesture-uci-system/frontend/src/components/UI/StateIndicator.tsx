@@ -42,21 +42,21 @@ export const StateIndicator: React.FC<StateIndicatorProps> = ({ state }) => {
 
   return (
     <>
-      {/* Versión móvil - barra delgada fija arriba (debajo del header ~44px) */}
+      {/* Versión móvil - pequeño badge en la esquina inferior derecha (junto a controles) */}
       <motion.div
-        className="fixed top-[44px] left-0 right-0 z-40 md:hidden"
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
+        className="fixed bottom-2 right-2 z-40 md:hidden"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.3, type: 'spring' }}
       >
         <div
-          className={`${config.color} text-white px-2 py-[3px] flex items-center justify-center gap-1 whitespace-nowrap`}
+          className={`${config.color} text-white px-2 py-1 rounded-md flex items-center gap-1 shadow-lg`}
         >
           <span className="text-[10px]">{config.emoji}</span>
-          <span className="font-medium text-[10px]">{config.text}</span>
+          <span className="font-medium text-[8px] max-w-[100px] leading-tight">{config.shortText}</span>
           {config.pulse && (
             <motion.div
-              className="w-1 h-1 bg-white rounded-full flex-shrink-0 ml-0.5"
+              className="w-1 h-1 bg-white rounded-full flex-shrink-0"
               animate={{ opacity: [1, 0.3, 1] }}
               transition={{ duration: 0.8, repeat: Infinity }}
             />

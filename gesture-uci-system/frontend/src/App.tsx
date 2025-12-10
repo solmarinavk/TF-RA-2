@@ -117,10 +117,10 @@ function App() {
           </h1>
           <p className="text-xs text-slate-500 hidden sm:block landscape:hidden">Sistema de Comunicación Gestual</p>
         </div>
-
-        {/* Indicador de estado */}
-        <StateIndicator state={systemState} />
       </header>
+
+      {/* Indicador de estado - posicionado independientemente */}
+      <StateIndicator state={systemState} />
 
       {/* Área de círculos - responsive con landscape */}
       <div className="fixed top-[12%] landscape:top-[8%] sm:top-[18%] left-0 right-0 z-20 pb-4 landscape:pb-2">
