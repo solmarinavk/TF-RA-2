@@ -73,7 +73,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({ onVideoReady, className 
     <>
       <video
         ref={videoRef}
-        className={className || "absolute inset-0 w-full h-full object-cover scale-x-[-1]"}
+        className={className || "absolute inset-0 w-full h-full object-contain scale-x-[-1]"}
         autoPlay
         playsInline
         muted
