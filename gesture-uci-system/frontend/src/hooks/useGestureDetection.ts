@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { PoseLandmarker, HandLandmarker } from '@mediapipe/tasks-vision';
 import { PoseLandmark, HandLandmark } from '@/types';
-import { detectLPose, isThumbsUp } from '@/utils/geometry';
+import { detectLPose } from '@/utils/geometry';
 import { useAppStore } from '@/store/useAppStore';
 
 /**
  * Hook que detecta gestos de brazo en L para control del sistema
  * - Brazo IZQUIERDO en L (completamente visible) → Iniciar grabación
- * - Brazo DERECHO en L + pulgar arriba (👍) → Finalizar grabación
+ * - Brazo DERECHO en L → Finalizar grabación (sin necesidad de thumbs up)
  */
 export function useGestureDetection(
   poseLandmarker: PoseLandmarker | null,
@@ -79,10 +79,7 @@ export function useGestureDetection(
           if (poseLandmarks) {
             const lPoseStatus = detectLPose(poseLandmarks);
 
-            // Detectar si la mano derecha está haciendo pulgar arriba (👍) - necesario para terminar grabación
-            const rightHandThumbsUp = isThumbsUp(rightHand);
-
-            // Debug mejorado con throttle - mostrar SIEMPRE los ángulos
+            // Debug mejorado con throttle
             const now = Date.now();
             if (now - lastLogTimeRef.current > 500) {
               lastLogTimeRef.current = now;
@@ -91,15 +88,14 @@ export function useGestureDetection(
                 brazoIzq: lPoseStatus.leftAngle ? `${lPoseStatus.leftAngle.toFixed(1)}° ${lPoseStatus.left ? '✅ EN L' : ''}` : 'no visible',
                 brazoIzqVisible: lPoseStatus.leftVisibleInFrame ? '✅ visible en pantalla' : '❌ fuera de pantalla',
                 brazoDer: lPoseStatus.rightAngle ? `${lPoseStatus.rightAngle.toFixed(1)}° ${lPoseStatus.right ? '✅ EN L' : ''}` : 'no visible',
-                manoDer: rightHandThumbsUp ? '👍 PULGAR ARRIBA' : '✋ otra posición/no detectada',
                 tolerancia: '45-135°'
               });
             }
 
             // Actualizar estado del gesto
             // Para iniciar: solo brazo izquierdo en L (completamente visible en pantalla)
-            // Para terminar: brazo derecho en L + pulgar arriba (👍)
-            updateGestureState(lPoseStatus.left, lPoseStatus.right, rightHandThumbsUp);
+            // Para terminar: solo brazo derecho en L (más fácil, sin necesidad de thumbs up)
+            updateGestureState(lPoseStatus.left, lPoseStatus.right, true);
           }
 
         } catch (error) {

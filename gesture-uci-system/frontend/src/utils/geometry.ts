@@ -141,14 +141,15 @@ function isArmVisibleInFrame(
   elbow: PoseLandmark,
   wrist: PoseLandmark
 ): boolean {
-  // Sin márgenes - solo verificar que los puntos existan y tengan coordenadas válidas
-  // En móvil la cámara tiene menor FOV y necesitamos máxima permisividad
+  // Margen pequeño (2%) para evitar falsos positivos pero ser permisivo en móvil
+  const margin = 0.02;
+  const minVal = -margin;
+  const maxVal = 1 + margin;
+
   const points = [shoulder, elbow, wrist];
 
   for (const point of points) {
-    // Solo verificar que las coordenadas estén en un rango razonable (-0.1 a 1.1)
-    // Esto permite landmarks que están ligeramente fuera del frame
-    if (point.x < -0.1 || point.x > 1.1 || point.y < -0.1 || point.y > 1.1) {
+    if (point.x < minVal || point.x > maxVal || point.y < minVal || point.y > maxVal) {
       return false;
     }
   }

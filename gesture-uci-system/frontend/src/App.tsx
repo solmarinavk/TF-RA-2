@@ -174,7 +174,7 @@ function App() {
 
           <div className="mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-slate-700/50 flex justify-between items-center text-[10px] sm:text-xs text-slate-500">
             <span>{selectedKeys.length} selección{selectedKeys.length !== 1 ? 'es' : ''}</span>
-            <span className="text-slate-600 hidden sm:inline">Brazo der. L + 👍 para finalizar</span>
+            <span className="text-slate-600 hidden sm:inline">Brazo der. L para finalizar</span>
           </div>
         </motion.div>
       )}
@@ -191,8 +191,8 @@ function App() {
           <span className="text-slate-400 text-[9px] landscape:text-[7px] sm:text-xs">Índice → Elegir</span>
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
-          <span className="w-3 landscape:w-2.5 sm:w-5 text-center text-xs landscape:text-[10px] sm:text-sm">👍</span>
-          <span className="text-slate-400 text-[9px] landscape:text-[7px] sm:text-xs">Brazo der. + 👍</span>
+          <span className="w-3 landscape:w-2.5 sm:w-5 text-center text-xs landscape:text-[10px] sm:text-sm">💪</span>
+          <span className="text-slate-400 text-[9px] landscape:text-[7px] sm:text-xs">Brazo der. L → Fin</span>
         </div>
         <div className="pt-1 landscape:pt-0.5 sm:pt-2 border-t border-slate-700/50 text-slate-600 text-[9px] landscape:text-[7px] sm:text-xs">
           {isReady ? '● Listo' : '○ Cargando...'}
