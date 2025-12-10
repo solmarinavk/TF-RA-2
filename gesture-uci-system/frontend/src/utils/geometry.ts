@@ -141,8 +141,9 @@ function isArmVisibleInFrame(
   elbow: PoseLandmark,
   wrist: PoseLandmark
 ): boolean {
-  // Márgenes para considerar visible (5% del borde de la pantalla)
-  const margin = 0.05;
+  // Márgenes muy permisivos para móvil (1% del borde de la pantalla)
+  // En móvil la cámara tiene menor FOV y el usuario está más cerca
+  const margin = 0.01;
   const minX = margin;
   const maxX = 1 - margin;
   const minY = margin;

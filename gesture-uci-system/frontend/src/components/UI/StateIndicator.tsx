@@ -10,24 +10,28 @@ const STATE_CONFIG = {
   IDLE: {
     emoji: '🤚',
     text: 'Levanta brazo izquierdo en L para iniciar',
+    shortText: 'Brazo L para iniciar',
     color: 'bg-blue-500',
     pulse: true
   },
   RECORDING: {
     emoji: '🔴',
     text: 'GRABANDO - Selecciona con tu dedo índice',
+    shortText: 'GRABANDO',
     color: 'bg-red-500',
     pulse: true
   },
   PROCESSING: {
     emoji: '⚙️',
     text: 'Analizando grafo...',
+    shortText: 'Procesando...',
     color: 'bg-yellow-500',
     pulse: true
   },
   DISPLAYING: {
     emoji: '✅',
     text: 'Mensaje completo - Brazo izquierdo en L para nuevo mensaje',
+    shortText: 'Listo - Brazo L',
     color: 'bg-green-500',
     pulse: false
   }
@@ -38,15 +42,49 @@ export const StateIndicator: React.FC<StateIndicatorProps> = ({ state }) => {
 
   return (
     <motion.div
-      className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50"
+      className="fixed top-0 left-0 right-0 sm:top-6 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 z-50"
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, type: 'spring' }}
     >
+      {/* Versión móvil - barra delgada full width */}
       <div
-        className={`${config.color} text-white px-8 py-4 rounded-full shadow-2xl flex items-center gap-4`}
+        className={`${config.color} text-white px-3 py-1.5 landscape:py-1 sm:hidden flex items-center justify-center gap-2`}
       >
-        {/* Emoji */}
+        <motion.span
+          className="text-sm landscape:text-xs"
+          animate={config.pulse ? {
+            scale: [1, 1.15, 1],
+          } : {}}
+          transition={{
+            duration: 1,
+            repeat: config.pulse ? Infinity : 0
+          }}
+        >
+          {config.emoji}
+        </motion.span>
+        <span className="font-semibold text-xs landscape:text-[10px]">
+          {config.shortText}
+        </span>
+        {config.pulse && (
+          <motion.div
+            className="w-1.5 h-1.5 bg-white rounded-full"
+            animate={{
+              scale: [1, 1.5, 1],
+              opacity: [1, 0.5, 1]
+            }}
+            transition={{
+              duration: 1,
+              repeat: Infinity
+            }}
+          />
+        )}
+      </div>
+
+      {/* Versión desktop - diseño original */}
+      <div
+        className={`${config.color} text-white px-8 py-4 rounded-full shadow-2xl hidden sm:flex items-center gap-4`}
+      >
         <motion.span
           className="text-3xl"
           animate={config.pulse ? {
@@ -60,13 +98,9 @@ export const StateIndicator: React.FC<StateIndicatorProps> = ({ state }) => {
         >
           {config.emoji}
         </motion.span>
-
-        {/* Texto */}
         <span className="font-bold text-lg">
           {config.text}
         </span>
-
-        {/* Dot pulsante para estados activos */}
         {config.pulse && (
           <motion.div
             className="w-3 h-3 bg-white rounded-full"
