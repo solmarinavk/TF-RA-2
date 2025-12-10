@@ -38,11 +38,11 @@ export const KeyButton: React.FC<KeyButtonProps> = ({
     setIsProximate(distance < proximityThreshold);
   }, [fingerPosition, keyNode.radius]);
 
-  // Tamaño responsive basado en viewport width
+  // Tamaño responsive basado en viewport width - optimizado para mobile
   const getResponsiveSize = () => {
     const vw = window.innerWidth;
-    if (vw < 640) return 70;  // móvil
-    if (vw < 768) return 80;  // tablet pequeño
+    if (vw < 640) return 58;  // móvil - más pequeño para evitar overlap
+    if (vw < 768) return 75;  // tablet pequeño
     if (vw < 1024) return 90; // tablet
     if (vw < 1280) return 100; // laptop pequeño (14")
     return 110; // laptop grande (16"+)
@@ -95,13 +95,13 @@ export const KeyButton: React.FC<KeyButtonProps> = ({
             : isProximate
             ? `0 0 15px ${keyNode.color}40`
             : '0 4px 15px rgba(0,0,0,0.4)',
-          fontSize: size > 100 ? '12px' : '10px',
-          padding: '8px',
-          lineHeight: 1.2
+          fontSize: size < 65 ? '8px' : size > 100 ? '12px' : '10px',
+          padding: size < 65 ? '4px' : '8px',
+          lineHeight: 1.1
         }}
       >
         {/* Texto de la tecla */}
-        <span className="z-10 leading-tight px-1">{keyNode.label}</span>
+        <span className="z-10 leading-tight px-0.5">{keyNode.label}</span>
 
         {/* Barra de progreso circular */}
         {isHovered && isRecording && hoverProgress > 0 && (
@@ -137,13 +137,14 @@ export const KeyButton: React.FC<KeyButtonProps> = ({
         )}
       </div>
 
-      {/* Badge contador de selecciones */}
+      {/* Badge contador de selecciones - más pequeño en mobile */}
       {keyNode.selectionCount > 0 && (
         <motion.div
-          className="absolute -top-1 -right-1 bg-white text-slate-900 rounded-full shadow-lg flex items-center justify-center font-black text-xs border-2"
+          className="absolute -top-1 -right-1 bg-white text-slate-900 rounded-full shadow-lg flex items-center justify-center font-black border-2"
           style={{
-            width: 22,
-            height: 22,
+            width: size < 65 ? 18 : 22,
+            height: size < 65 ? 18 : 22,
+            fontSize: size < 65 ? '10px' : '12px',
             borderColor: keyNode.color
           }}
           initial={{ scale: 0 }}
