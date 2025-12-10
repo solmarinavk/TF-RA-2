@@ -17,7 +17,7 @@ export const UCI_KEYS: KeyNode[] = [
 export const SELECTION_DURATION = 3000; // 3 segundos
 export const PROXIMITY_THRESHOLD = 80; // pixels
 export const HOVER_THRESHOLD = 60; // pixels
-export const L_POSE_ANGLE_TOLERANCE = 35; // grados (90° ± 35° = 55-125°)
+export const L_POSE_ANGLE_TOLERANCE = 45; // grados (MUY permisivo: 45-135 grados)
 export const L_POSE_DURATION = 2000; // 2 segundos con feedback visual
 export const FPS_TARGET = 30;
-export const MIN_LANDMARK_VISIBILITY = 0.5; // requiere landmarks bien visibles
+export const MIN_LANDMARK_VISIBILITY = 0.3; // más permisivo para no perder gestos

@@ -109,21 +109,21 @@ function App() {
       {/* Overlay de landmarks */}
       <LandmarksOverlay canvasSize={canvasSize} />
 
-      {/* Header responsive - más compacto en mobile y landscape */}
-      <header className="fixed top-0 left-0 right-0 z-30 px-3 sm:px-6 py-1.5 landscape:py-1 sm:py-4 flex items-center justify-between bg-gradient-to-b from-black/40 to-transparent">
+      {/* Header responsive */}
+      <header className="fixed top-0 left-0 right-0 z-30 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
         <div>
-          <h1 className="text-sm landscape:text-xs sm:text-xl md:text-2xl font-bold text-white tracking-tight">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight">
             DOCommunication
           </h1>
-          <p className="text-xs text-slate-500 hidden sm:block landscape:hidden">Sistema de Comunicación Gestual</p>
+          <p className="text-xs text-slate-500 hidden sm:block">Sistema de Comunicación Gestual</p>
         </div>
+
+        {/* Indicador de estado */}
+        <StateIndicator state={systemState} />
       </header>
 
-      {/* Indicador de estado - posicionado independientemente */}
-      <StateIndicator state={systemState} />
-
-      {/* Área de círculos - responsive con landscape */}
-      <div className="fixed top-[12%] landscape:top-[8%] sm:top-[18%] left-0 right-0 z-20 pb-4 landscape:pb-2">
+      {/* Área de círculos - completamente responsive */}
+      <div className="fixed top-[15%] sm:top-[18%] left-0 right-0 z-20">
         <VirtualKeyboard
           keys={graph.nodes.size > 0 ? Array.from(graph.nodes.values()) : UCI_KEYS}
           fingerPosition={fingerPosition}
@@ -134,32 +134,31 @@ function App() {
         />
       </div>
 
-      {/* Panel de mensaje actual - optimizado para mobile y landscape */}
+      {/* Panel de mensaje actual - pegado a la derecha */}
       {systemState !== 'IDLE' && (
         <motion.div
-          className="fixed bottom-[90px] landscape:bottom-2 landscape:right-2 landscape:left-auto landscape:max-w-[250px] left-3 right-3 sm:top-[40%] sm:bottom-auto sm:left-auto sm:right-4 md:right-6 z-30 bg-slate-800/95 backdrop-blur-md rounded-xl p-3 landscape:p-2 sm:p-5 text-white sm:min-w-[300px] sm:max-w-[400px] shadow-2xl border border-slate-700/50"
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
+          className="fixed top-[45%] sm:top-[40%] right-3 sm:right-4 md:right-6 z-30 bg-slate-800/90 backdrop-blur-md rounded-xl p-4 sm:p-5 text-white w-[calc(100%-1.5rem)] sm:w-auto min-w-[280px] sm:min-w-[300px] max-w-[400px] shadow-2xl border border-slate-700/50"
+          initial={{ x: 400, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.4, type: 'spring' }}
         >
-          <h3 className="font-semibold text-xs sm:text-base mb-2 sm:mb-4 flex items-center gap-2 text-slate-200">
-            <span className="text-sm sm:text-lg">💬</span>
-            <span className="hidden sm:inline">Mensaje en construcción</span>
-            <span className="sm:hidden">Mensaje</span>
+          <h3 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4 flex items-center gap-2 text-slate-200">
+            <span className="text-base sm:text-lg">💬</span>
+            Mensaje en construcción
           </h3>
 
           {currentMessage.length === 0 ? (
-            <div className="text-slate-500 text-[10px] sm:text-sm text-center py-2 sm:py-4">
-              Apunta a un círculo...
+            <div className="text-slate-500 text-xs sm:text-sm text-center py-3 sm:py-4">
+              Apunta a un círculo para seleccionar...
             </div>
           ) : (
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+            <div className="flex flex-wrap gap-2">
               {currentMessage.map((word, i) => {
                 const keyNode = UCI_KEYS.find(k => k.label === word);
                 return (
                   <motion.div
                     key={i}
-                    className="px-2 sm:px-3 py-0.5 sm:py-1.5 rounded-full text-[10px] sm:text-sm font-medium text-white shadow-md"
+                    className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium text-white shadow-md"
                     style={{ backgroundColor: keyNode?.color || '#3b82f6' }}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
@@ -172,30 +171,30 @@ function App() {
             </div>
           )}
 
-          <div className="mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-slate-700/50 flex justify-between items-center text-[10px] sm:text-xs text-slate-500">
+          <div className="mt-3 sm:mt-4 pt-3 border-t border-slate-700/50 flex justify-between items-center text-xs text-slate-500">
             <span>{selectedKeys.length} selección{selectedKeys.length !== 1 ? 'es' : ''}</span>
             <span className="text-slate-600 hidden sm:inline">Brazo der. L + 👍 para finalizar</span>
           </div>
         </motion.div>
       )}
 
-      {/* Panel de instrucciones - compacto en mobile y landscape */}
-      <div className="fixed bottom-2 landscape:bottom-1 landscape:left-1 landscape:max-w-[140px] sm:bottom-4 left-2 sm:left-4 z-40 bg-slate-800/85 backdrop-blur-sm rounded-lg p-2 landscape:p-1.5 sm:p-3 text-white text-xs space-y-0.5 landscape:space-y-0 sm:space-y-1.5 max-w-[160px] sm:max-w-[220px] border border-slate-700/30">
-        <div className="font-semibold text-slate-300 mb-1 landscape:mb-0.5 sm:mb-2 text-[10px] landscape:text-[8px] sm:text-sm">Controles</div>
-        <div className="flex items-center gap-1 sm:gap-2">
-          <span className="w-3 landscape:w-2.5 sm:w-5 text-center text-xs landscape:text-[10px] sm:text-sm">💪</span>
-          <span className="text-slate-400 text-[9px] landscape:text-[7px] sm:text-xs">Brazo izq. L</span>
+      {/* Panel de instrucciones - responsive */}
+      <div className="fixed bottom-3 sm:bottom-4 left-3 sm:left-4 z-40 bg-slate-800/80 backdrop-blur-sm rounded-lg p-2.5 sm:p-3 text-white text-xs space-y-1 sm:space-y-1.5 max-w-[200px] sm:max-w-[220px] border border-slate-700/30">
+        <div className="font-semibold text-slate-300 mb-1.5 sm:mb-2 text-xs sm:text-sm">Controles</div>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <span className="w-4 sm:w-5 text-center text-sm">💪</span>
+          <span className="text-slate-400 text-[10px] sm:text-xs">Brazo izq. en L → Iniciar</span>
         </div>
-        <div className="flex items-center gap-1 sm:gap-2">
-          <span className="w-3 landscape:w-2.5 sm:w-5 text-center text-xs landscape:text-[10px] sm:text-sm">👆</span>
-          <span className="text-slate-400 text-[9px] landscape:text-[7px] sm:text-xs">Índice → Elegir</span>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <span className="w-4 sm:w-5 text-center text-sm">👆</span>
+          <span className="text-slate-400 text-[10px] sm:text-xs">Dedo índice → Seleccionar</span>
         </div>
-        <div className="flex items-center gap-1 sm:gap-2">
-          <span className="w-3 landscape:w-2.5 sm:w-5 text-center text-xs landscape:text-[10px] sm:text-sm">👍</span>
-          <span className="text-slate-400 text-[9px] landscape:text-[7px] sm:text-xs">Brazo der. + 👍</span>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <span className="w-4 sm:w-5 text-center text-sm">👍</span>
+          <span className="text-slate-400 text-[10px] sm:text-xs">Brazo der. + pulgar → Fin</span>
         </div>
-        <div className="pt-1 landscape:pt-0.5 sm:pt-2 border-t border-slate-700/50 text-slate-600 text-[9px] landscape:text-[7px] sm:text-xs">
-          {isReady ? '● Listo' : '○ Cargando...'}
+        <div className="pt-1.5 sm:pt-2 border-t border-slate-700/50 text-slate-600 text-[10px] sm:text-xs">
+          {isReady ? '● Sistema listo' : '○ Preparando...'}
         </div>
       </div>
 
@@ -208,7 +207,7 @@ function App() {
         />
       )}
 
-      {/* Cursor de dedo índice - optimizado para mobile */}
+      {/* Cursor de dedo índice */}
       {systemState === 'RECORDING' && fingerPosition && (
         <motion.div
           className="fixed pointer-events-none z-50"
@@ -226,7 +225,7 @@ function App() {
             ease: 'easeInOut'
           }}
         >
-          <div className="w-3 h-3 sm:w-5 sm:h-5 bg-yellow-400 rounded-full border-2 border-white shadow-lg shadow-yellow-400/50" />
+          <div className="w-4 h-4 sm:w-5 sm:h-5 bg-yellow-400 rounded-full border-2 sm:border-3 border-white shadow-lg shadow-yellow-400/50" />
         </motion.div>
       )}
 

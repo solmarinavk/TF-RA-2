@@ -4,15 +4,6 @@ import { PoseLandmark, HandLandmark } from '@/types';
 import { detectLPose, isThumbsUp } from '@/utils/geometry';
 import { useAppStore } from '@/store/useAppStore';
 
-// Detectar si es móvil para usar ángulo más estricto
-const isMobile = () => {
-  if (typeof window === 'undefined') return false;
-  return window.innerWidth < 768;
-};
-
-// Mismo ángulo para móvil y desktop (35°), la diferencia está en el tiempo (3s vs 2s)
-const getAngleTolerance = () => 35;
-
 /**
  * Hook que detecta gestos de brazo en L para control del sistema
  * - Brazo IZQUIERDO en L (completamente visible) → Iniciar grabación
@@ -86,31 +77,27 @@ export function useGestureDetection(
 
           // Analizar gestos de brazos en L
           if (poseLandmarks) {
-            // Tolerancia de ángulo (35° tanto en móvil como en desktop)
-            const tolerance = getAngleTolerance();
-            const lPoseStatus = detectLPose(poseLandmarks, tolerance);
+            const lPoseStatus = detectLPose(poseLandmarks);
 
-            // Detectar si la mano derecha está haciendo pulgar arriba (👍)
+            // Detectar si la mano derecha está haciendo pulgar arriba (👍) - necesario para terminar grabación
             const rightHandThumbsUp = isThumbsUp(rightHand);
 
-            // Debug mejorado con throttle
+            // Debug mejorado con throttle - mostrar SIEMPRE los ángulos
             const now = Date.now();
             if (now - lastLogTimeRef.current > 500) {
               lastLogTimeRef.current = now;
 
-              const mobile = isMobile();
               console.log('🔍 ÁNGULOS DETECTADOS:', {
-                dispositivo: mobile ? '📱 MÓVIL (estricto)' : '🖥️ DESKTOP',
                 brazoIzq: lPoseStatus.leftAngle ? `${lPoseStatus.leftAngle.toFixed(1)}° ${lPoseStatus.left ? '✅ EN L' : ''}` : 'no visible',
-                brazoIzqVisible: lPoseStatus.leftVisibleInFrame ? '✅ visible' : '❌ fuera',
+                brazoIzqVisible: lPoseStatus.leftVisibleInFrame ? '✅ visible en pantalla' : '❌ fuera de pantalla',
                 brazoDer: lPoseStatus.rightAngle ? `${lPoseStatus.rightAngle.toFixed(1)}° ${lPoseStatus.right ? '✅ EN L' : ''}` : 'no visible',
-                manoDer: rightHandThumbsUp ? '👍 PULGAR ARRIBA' : '✋ sin thumbs up',
-                tolerancia: mobile ? '65-115° (móvil)' : '55-125°'
+                manoDer: rightHandThumbsUp ? '👍 PULGAR ARRIBA' : '✋ otra posición/no detectada',
+                tolerancia: '45-135°'
               });
             }
 
             // Actualizar estado del gesto
-            // Para iniciar: brazo izquierdo en L (completamente visible en pantalla)
+            // Para iniciar: solo brazo izquierdo en L (completamente visible en pantalla)
             // Para terminar: brazo derecho en L + pulgar arriba (👍)
             updateGestureState(lPoseStatus.left, lPoseStatus.right, rightHandThumbsUp);
           }

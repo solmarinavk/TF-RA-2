@@ -1,16 +1,6 @@
 import { PoseLandmark, HandLandmark, PoseLandmarkIndex } from '@/types';
 import { L_POSE_ANGLE_TOLERANCE, MIN_LANDMARK_VISIBILITY } from './constants';
 
-// Detectar si es móvil para ajustar parámetros de detección
-const isMobileDevice = () => {
-  if (typeof window === 'undefined') return false;
-  return window.innerWidth < 768;
-};
-
-// En móvil usamos umbral de visibilidad más bajo (0.3 vs 0.5 en desktop)
-// porque las cámaras móviles típicamente tienen menor confianza
-const getMinVisibility = () => isMobileDevice() ? 0.3 : MIN_LANDMARK_VISIBILITY;
-
 /**
  * Calcula el ángulo entre tres puntos usando producto punto
  * @param p1 - Primer punto (ej: hombro)
@@ -151,16 +141,17 @@ function isArmVisibleInFrame(
   elbow: PoseLandmark,
   wrist: PoseLandmark
 ): boolean {
-  // En móvil usamos margen más pequeño (1%) porque la cámara está más cerca
-  // En desktop usamos 5% para mayor precisión
-  const margin = isMobileDevice() ? 0.01 : 0.05;
-  const minVal = margin;
-  const maxVal = 1 - margin;
+  // Márgenes para considerar visible (5% del borde de la pantalla)
+  const margin = 0.05;
+  const minX = margin;
+  const maxX = 1 - margin;
+  const minY = margin;
+  const maxY = 1 - margin;
 
   const points = [shoulder, elbow, wrist];
 
   for (const point of points) {
-    if (point.x < minVal || point.x > maxVal || point.y < minVal || point.y > maxVal) {
+    if (point.x < minX || point.x > maxX || point.y < minY || point.y > maxY) {
       return false;
     }
   }
@@ -171,10 +162,9 @@ function isArmVisibleInFrame(
 /**
  * Detecta ambos brazos en postura L
  * @param landmarks - Array de pose landmarks
- * @param customTolerance - Tolerancia de ángulo personalizada (opcional, para móvil usar valor más estricto)
  * @returns Objeto con estado de cada brazo y si está visible en pantalla
  */
-export function detectLPose(landmarks: PoseLandmark[], customTolerance?: number): {
+export function detectLPose(landmarks: PoseLandmark[]): {
   left: boolean;
   right: boolean;
   leftAngle: number | null;
@@ -182,8 +172,6 @@ export function detectLPose(landmarks: PoseLandmark[], customTolerance?: number)
   leftVisibleInFrame: boolean;
   rightVisibleInFrame: boolean;
 } {
-  const tolerance = customTolerance ?? L_POSE_ANGLE_TOLERANCE;
-
   if (!landmarks || landmarks.length < 33) {
     return {
       left: false,
@@ -208,14 +196,11 @@ export function detectLPose(landmarks: PoseLandmark[], customTolerance?: number)
   let leftVisibleInFrame = false;
   let rightVisibleInFrame = false;
 
-  // Umbral de visibilidad (más bajo en móvil)
-  const minVisibility = getMinVisibility();
-
   // Calcular ángulo izquierdo
   if (
-    leftShoulder?.visibility && leftShoulder.visibility >= minVisibility &&
-    leftElbow?.visibility && leftElbow.visibility >= minVisibility &&
-    leftWrist?.visibility && leftWrist.visibility >= minVisibility
+    leftShoulder?.visibility && leftShoulder.visibility >= MIN_LANDMARK_VISIBILITY &&
+    leftElbow?.visibility && leftElbow.visibility >= MIN_LANDMARK_VISIBILITY &&
+    leftWrist?.visibility && leftWrist.visibility >= MIN_LANDMARK_VISIBILITY
   ) {
     leftAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
     leftVisibleInFrame = isArmVisibleInFrame(leftShoulder, leftElbow, leftWrist);
@@ -223,21 +208,17 @@ export function detectLPose(landmarks: PoseLandmark[], customTolerance?: number)
 
   // Calcular ángulo derecho
   if (
-    rightShoulder?.visibility && rightShoulder.visibility >= minVisibility &&
-    rightElbow?.visibility && rightElbow.visibility >= minVisibility &&
-    rightWrist?.visibility && rightWrist.visibility >= minVisibility
+    rightShoulder?.visibility && rightShoulder.visibility >= MIN_LANDMARK_VISIBILITY &&
+    rightElbow?.visibility && rightElbow.visibility >= MIN_LANDMARK_VISIBILITY &&
+    rightWrist?.visibility && rightWrist.visibility >= MIN_LANDMARK_VISIBILITY
   ) {
     rightAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
     rightVisibleInFrame = isArmVisibleInFrame(rightShoulder, rightElbow, rightWrist);
   }
 
-  // En móvil, no requerimos que el brazo esté completamente visible en pantalla
-  // porque las cámaras móviles tienen diferente campo de visión
-  const mobile = isMobileDevice();
-
   return {
-    left: leftAngle !== null && Math.abs(leftAngle - 90) < tolerance && (mobile || leftVisibleInFrame),
-    right: rightAngle !== null && Math.abs(rightAngle - 90) < tolerance,
+    left: leftAngle !== null && Math.abs(leftAngle - 90) < L_POSE_ANGLE_TOLERANCE && leftVisibleInFrame,
+    right: rightAngle !== null && Math.abs(rightAngle - 90) < L_POSE_ANGLE_TOLERANCE,
     leftAngle,
     rightAngle,
     leftVisibleInFrame,
@@ -409,7 +390,7 @@ export function isThumbsUp(handLandmarks: HandLandmark[] | null): boolean {
   const pinkyTip = handLandmarks[20];
   const indexMCP = handLandmarks[5];
 
-  // 1. El pulgar debe estar extendido hacia arriba
+  // 1. El pulgar debe estar extendido hacia arriba (más permisivo)
   const thumbExtended = thumbTip.y < thumbIP.y;
 
   // 2. Los otros dedos deben estar doblados (cerca del MCP del índice)
@@ -418,7 +399,7 @@ export function isThumbsUp(handLandmarks: HandLandmark[] | null): boolean {
   const ringFolded = distance3D(ringTip, indexMCP) < distance3D(thumbTip, indexMCP) * 0.8;
   const pinkyFolded = distance3D(pinkyTip, indexMCP) < distance3D(thumbTip, indexMCP) * 0.8;
 
-  // Al menos 2 de 4 dedos doblados y pulgar extendido
+  // Al menos 2 de 4 dedos doblados y pulgar extendido (más permisivo)
   const foldedCount = [indexFolded, middleFolded, ringFolded, pinkyFolded].filter(Boolean).length;
 
   return thumbExtended && foldedCount >= 2;

@@ -20,8 +20,8 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
   isRecording
 }) => {
   return (
-    <div className="w-full max-w-7xl mx-auto px-1.5 sm:px-4">
-      <div className="flex flex-wrap justify-center items-center gap-1 sm:gap-2 md:gap-3 lg:gap-4 pointer-events-none">
+    <div className="w-full max-w-7xl mx-auto px-2 sm:px-4">
+      <div className="flex flex-wrap justify-center items-center gap-1.5 sm:gap-2 md:gap-3 lg:gap-4 pointer-events-none">
         {keys.map(key => (
           <KeyButton
             key={key.id}
