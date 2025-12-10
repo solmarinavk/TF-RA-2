@@ -20,4 +20,4 @@ export const HOVER_THRESHOLD = 60; // pixels
 export const L_POSE_ANGLE_TOLERANCE = 45; // grados (MUY permisivo: 45-135 grados)
 export const L_POSE_DURATION = 2000; // 2 segundos con feedback visual
 export const FPS_TARGET = 30;
-export const MIN_LANDMARK_VISIBILITY = 0.3; // más permisivo para no perder gestos
+export const MIN_LANDMARK_VISIBILITY = 0.15; // muy permisivo para móvil donde la cámara es menos precisa
