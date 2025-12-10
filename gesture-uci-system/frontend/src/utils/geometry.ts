@@ -141,10 +141,10 @@ function isArmVisibleInFrame(
   elbow: PoseLandmark,
   wrist: PoseLandmark
 ): boolean {
-  // Margen pequeño (2%) para evitar falsos positivos pero ser permisivo en móvil
-  const margin = 0.02;
-  const minVal = -margin;
-  const maxVal = 1 + margin;
+  // Margen del 5% para asegurar que el brazo esté bien visible
+  const margin = 0.05;
+  const minVal = margin;
+  const maxVal = 1 - margin;
 
   const points = [shoulder, elbow, wrist];
 
