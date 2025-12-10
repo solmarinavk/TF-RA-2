@@ -38,9 +38,16 @@ export const KeyButton: React.FC<KeyButtonProps> = ({
     setIsProximate(distance < proximityThreshold);
   }, [fingerPosition, keyNode.radius]);
 
-  // Tamaño responsive basado en viewport width - optimizado para mobile
+  // Tamaño responsive basado en viewport width - optimizado para mobile y landscape
   const getResponsiveSize = () => {
     const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const isLandscape = vw > vh;
+
+    // Landscape mobile - más pequeño para caber todo
+    if (isLandscape && vh < 500) return 48;
+
+    // Portrait mobile
     if (vw < 640) return 58;  // móvil - más pequeño para evitar overlap
     if (vw < 768) return 75;  // tablet pequeño
     if (vw < 1024) return 90; // tablet
@@ -95,8 +102,8 @@ export const KeyButton: React.FC<KeyButtonProps> = ({
             : isProximate
             ? `0 0 15px ${keyNode.color}40`
             : '0 4px 15px rgba(0,0,0,0.4)',
-          fontSize: size < 65 ? '8px' : size > 100 ? '12px' : '10px',
-          padding: size < 65 ? '4px' : '8px',
+          fontSize: size < 50 ? '7px' : size < 65 ? '8px' : size > 100 ? '12px' : '10px',
+          padding: size < 50 ? '3px' : size < 65 ? '4px' : '8px',
           lineHeight: 1.1
         }}
       >
@@ -142,9 +149,9 @@ export const KeyButton: React.FC<KeyButtonProps> = ({
         <motion.div
           className="absolute -top-1 -right-1 bg-white text-slate-900 rounded-full shadow-lg flex items-center justify-center font-black border-2"
           style={{
-            width: size < 65 ? 18 : 22,
-            height: size < 65 ? 18 : 22,
-            fontSize: size < 65 ? '10px' : '12px',
+            width: size < 50 ? 16 : size < 65 ? 18 : 22,
+            height: size < 50 ? 16 : size < 65 ? 18 : 22,
+            fontSize: size < 50 ? '8px' : size < 65 ? '10px' : '12px',
             borderColor: keyNode.color
           }}
           initial={{ scale: 0 }}

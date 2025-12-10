@@ -20,6 +20,9 @@ export default {
           lime: '#84CC16'
         }
       },
+      screens: {
+        'landscape': { 'raw': '(orientation: landscape)' },
+      },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'glow': 'glow 2s ease-in-out infinite',

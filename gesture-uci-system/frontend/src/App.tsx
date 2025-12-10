@@ -109,21 +109,21 @@ function App() {
       {/* Overlay de landmarks */}
       <LandmarksOverlay canvasSize={canvasSize} />
 
-      {/* Header responsive - más compacto en mobile */}
-      <header className="fixed top-0 left-0 right-0 z-30 px-3 sm:px-6 py-2 sm:py-4 flex items-center justify-between bg-gradient-to-b from-black/40 to-transparent">
+      {/* Header responsive - más compacto en mobile y landscape */}
+      <header className="fixed top-0 left-0 right-0 z-30 px-3 sm:px-6 py-1.5 landscape:py-1 sm:py-4 flex items-center justify-between bg-gradient-to-b from-black/40 to-transparent">
         <div>
-          <h1 className="text-base sm:text-xl md:text-2xl font-bold text-white tracking-tight">
+          <h1 className="text-sm landscape:text-xs sm:text-xl md:text-2xl font-bold text-white tracking-tight">
             DOCommunication
           </h1>
-          <p className="text-xs text-slate-500 hidden sm:block">Sistema de Comunicación Gestual</p>
+          <p className="text-xs text-slate-500 hidden sm:block landscape:hidden">Sistema de Comunicación Gestual</p>
         </div>
 
         {/* Indicador de estado */}
         <StateIndicator state={systemState} />
       </header>
 
-      {/* Área de círculos - completamente responsive */}
-      <div className="fixed top-[12%] sm:top-[18%] left-0 right-0 z-20 pb-4">
+      {/* Área de círculos - responsive con landscape */}
+      <div className="fixed top-[12%] landscape:top-[8%] sm:top-[18%] left-0 right-0 z-20 pb-4 landscape:pb-2">
         <VirtualKeyboard
           keys={graph.nodes.size > 0 ? Array.from(graph.nodes.values()) : UCI_KEYS}
           fingerPosition={fingerPosition}
@@ -134,10 +134,10 @@ function App() {
         />
       </div>
 
-      {/* Panel de mensaje actual - optimizado para mobile */}
+      {/* Panel de mensaje actual - optimizado para mobile y landscape */}
       {systemState !== 'IDLE' && (
         <motion.div
-          className="fixed bottom-[90px] left-3 right-3 sm:top-[40%] sm:bottom-auto sm:left-auto sm:right-4 md:right-6 z-30 bg-slate-800/95 backdrop-blur-md rounded-xl p-3 sm:p-5 text-white sm:min-w-[300px] sm:max-w-[400px] shadow-2xl border border-slate-700/50"
+          className="fixed bottom-[90px] landscape:bottom-2 landscape:right-2 landscape:left-auto landscape:max-w-[250px] left-3 right-3 sm:top-[40%] sm:bottom-auto sm:left-auto sm:right-4 md:right-6 z-30 bg-slate-800/95 backdrop-blur-md rounded-xl p-3 landscape:p-2 sm:p-5 text-white sm:min-w-[300px] sm:max-w-[400px] shadow-2xl border border-slate-700/50"
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.4, type: 'spring' }}
@@ -179,22 +179,22 @@ function App() {
         </motion.div>
       )}
 
-      {/* Panel de instrucciones - compacto en mobile */}
-      <div className="fixed bottom-2 sm:bottom-4 left-2 sm:left-4 z-40 bg-slate-800/85 backdrop-blur-sm rounded-lg p-2 sm:p-3 text-white text-xs space-y-0.5 sm:space-y-1.5 max-w-[160px] sm:max-w-[220px] border border-slate-700/30">
-        <div className="font-semibold text-slate-300 mb-1 sm:mb-2 text-[10px] sm:text-sm">Controles</div>
+      {/* Panel de instrucciones - compacto en mobile y landscape */}
+      <div className="fixed bottom-2 landscape:bottom-1 landscape:left-1 landscape:max-w-[140px] sm:bottom-4 left-2 sm:left-4 z-40 bg-slate-800/85 backdrop-blur-sm rounded-lg p-2 landscape:p-1.5 sm:p-3 text-white text-xs space-y-0.5 landscape:space-y-0 sm:space-y-1.5 max-w-[160px] sm:max-w-[220px] border border-slate-700/30">
+        <div className="font-semibold text-slate-300 mb-1 landscape:mb-0.5 sm:mb-2 text-[10px] landscape:text-[8px] sm:text-sm">Controles</div>
         <div className="flex items-center gap-1 sm:gap-2">
-          <span className="w-3 sm:w-5 text-center text-xs sm:text-sm">💪</span>
-          <span className="text-slate-400 text-[9px] sm:text-xs">Brazo izq. L</span>
+          <span className="w-3 landscape:w-2.5 sm:w-5 text-center text-xs landscape:text-[10px] sm:text-sm">💪</span>
+          <span className="text-slate-400 text-[9px] landscape:text-[7px] sm:text-xs">Brazo izq. L</span>
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
-          <span className="w-3 sm:w-5 text-center text-xs sm:text-sm">👆</span>
-          <span className="text-slate-400 text-[9px] sm:text-xs">Índice → Elegir</span>
+          <span className="w-3 landscape:w-2.5 sm:w-5 text-center text-xs landscape:text-[10px] sm:text-sm">👆</span>
+          <span className="text-slate-400 text-[9px] landscape:text-[7px] sm:text-xs">Índice → Elegir</span>
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
-          <span className="w-3 sm:w-5 text-center text-xs sm:text-sm">👍</span>
-          <span className="text-slate-400 text-[9px] sm:text-xs">Brazo der. + 👍</span>
+          <span className="w-3 landscape:w-2.5 sm:w-5 text-center text-xs landscape:text-[10px] sm:text-sm">👍</span>
+          <span className="text-slate-400 text-[9px] landscape:text-[7px] sm:text-xs">Brazo der. + 👍</span>
         </div>
-        <div className="pt-1 sm:pt-2 border-t border-slate-700/50 text-slate-600 text-[9px] sm:text-xs">
+        <div className="pt-1 landscape:pt-0.5 sm:pt-2 border-t border-slate-700/50 text-slate-600 text-[9px] landscape:text-[7px] sm:text-xs">
           {isReady ? '● Listo' : '○ Cargando...'}
         </div>
       </div>

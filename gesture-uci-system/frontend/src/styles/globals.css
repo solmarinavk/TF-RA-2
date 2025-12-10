@@ -35,4 +35,12 @@
       touch-action: manipulation;
     }
   }
+
+  /* Soporte para orientación horizontal (landscape) */
+  @media (max-height: 500px) and (orientation: landscape) {
+    html, body {
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+  }
 }
