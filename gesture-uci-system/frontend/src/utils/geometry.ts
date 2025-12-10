@@ -129,6 +129,12 @@ export function detectRightLPose(landmarks: PoseLandmark[]): boolean {
   return Math.abs(angle - 90) < L_POSE_ANGLE_TOLERANCE;
 }
 
+// Detectar si es móvil para usar margen más permisivo
+const isMobileDevice = () => {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 768;
+};
+
 /**
  * Verifica si un brazo está completamente visible en pantalla
  * @param shoulder - Landmark del hombro
@@ -141,8 +147,9 @@ function isArmVisibleInFrame(
   elbow: PoseLandmark,
   wrist: PoseLandmark
 ): boolean {
-  // Margen del 5% para asegurar que el brazo esté bien visible
-  const margin = 0.05;
+  // En móvil usamos margen más pequeño (1%) porque la cámara está más cerca
+  // En desktop usamos 5% para mayor precisión
+  const margin = isMobileDevice() ? 0.01 : 0.05;
   const minVal = margin;
   const maxVal = 1 - margin;
 
