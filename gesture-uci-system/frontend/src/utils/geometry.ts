@@ -141,18 +141,14 @@ function isArmVisibleInFrame(
   elbow: PoseLandmark,
   wrist: PoseLandmark
 ): boolean {
-  // Márgenes muy permisivos para móvil (1% del borde de la pantalla)
-  // En móvil la cámara tiene menor FOV y el usuario está más cerca
-  const margin = 0.01;
-  const minX = margin;
-  const maxX = 1 - margin;
-  const minY = margin;
-  const maxY = 1 - margin;
-
+  // Sin márgenes - solo verificar que los puntos existan y tengan coordenadas válidas
+  // En móvil la cámara tiene menor FOV y necesitamos máxima permisividad
   const points = [shoulder, elbow, wrist];
 
   for (const point of points) {
-    if (point.x < minX || point.x > maxX || point.y < minY || point.y > maxY) {
+    // Solo verificar que las coordenadas estén en un rango razonable (-0.1 a 1.1)
+    // Esto permite landmarks que están ligeramente fuera del frame
+    if (point.x < -0.1 || point.x > 1.1 || point.y < -0.1 || point.y > 1.1) {
       return false;
     }
   }
@@ -385,23 +381,29 @@ export function isThumbsUp(handLandmarks: HandLandmark[] | null): boolean {
 
   const thumbTip = handLandmarks[4];
   const thumbIP = handLandmarks[3];
+  const thumbMCP = handLandmarks[2];
   const indexTip = handLandmarks[8];
   const middleTip = handLandmarks[12];
   const ringTip = handLandmarks[16];
   const pinkyTip = handLandmarks[20];
   const indexMCP = handLandmarks[5];
+  const wrist = handLandmarks[0];
 
-  // 1. El pulgar debe estar extendido hacia arriba (más permisivo)
-  const thumbExtended = thumbTip.y < thumbIP.y;
+  // 1. El pulgar debe estar extendido - MUY permisivo para móvil
+  // Aceptar si el pulgar está más arriba que su base o más alejado de la muñeca
+  const thumbExtended = thumbTip.y < thumbIP.y || thumbTip.y < thumbMCP.y;
 
-  // 2. Los otros dedos deben estar doblados (cerca del MCP del índice)
-  const indexFolded = distance3D(indexTip, indexMCP) < distance3D(thumbTip, indexMCP) * 0.8;
-  const middleFolded = distance3D(middleTip, indexMCP) < distance3D(thumbTip, indexMCP) * 0.8;
-  const ringFolded = distance3D(ringTip, indexMCP) < distance3D(thumbTip, indexMCP) * 0.8;
-  const pinkyFolded = distance3D(pinkyTip, indexMCP) < distance3D(thumbTip, indexMCP) * 0.8;
+  // Alternativa: pulgar alejado del centro de la palma
+  const thumbAwayFromPalm = distance3D(thumbTip, wrist) > distance3D(indexMCP, wrist) * 0.8;
 
-  // Al menos 2 de 4 dedos doblados y pulgar extendido (más permisivo)
+  // 2. Los otros dedos deben estar doblados - ratio más permisivo (1.0 en vez de 0.8)
+  const indexFolded = distance3D(indexTip, indexMCP) < distance3D(thumbTip, indexMCP) * 1.0;
+  const middleFolded = distance3D(middleTip, indexMCP) < distance3D(thumbTip, indexMCP) * 1.0;
+  const ringFolded = distance3D(ringTip, indexMCP) < distance3D(thumbTip, indexMCP) * 1.0;
+  const pinkyFolded = distance3D(pinkyTip, indexMCP) < distance3D(thumbTip, indexMCP) * 1.0;
+
+  // Solo 1 dedo doblado necesario (muy permisivo para móvil)
   const foldedCount = [indexFolded, middleFolded, ringFolded, pinkyFolded].filter(Boolean).length;
 
-  return thumbExtended && foldedCount >= 2;
+  return (thumbExtended || thumbAwayFromPalm) && foldedCount >= 1;
 }

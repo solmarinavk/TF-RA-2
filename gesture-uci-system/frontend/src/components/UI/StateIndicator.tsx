@@ -41,80 +41,70 @@ export const StateIndicator: React.FC<StateIndicatorProps> = ({ state }) => {
   const config = STATE_CONFIG[state];
 
   return (
-    <motion.div
-      className="fixed top-0 left-0 right-0 sm:top-6 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 z-50"
-      initial={{ y: -100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, type: 'spring' }}
-    >
-      {/* Versión móvil - barra delgada full width con texto completo en una línea */}
-      <div
-        className={`${config.color} text-white px-2 py-1 landscape:py-0.5 sm:hidden flex items-center justify-center gap-1.5 whitespace-nowrap`}
+    <>
+      {/* Versión móvil - barra delgada fija arriba (debajo del header ~44px) */}
+      <motion.div
+        className="fixed top-[44px] left-0 right-0 z-40 md:hidden"
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.3, type: 'spring' }}
       >
-        <motion.span
-          className="text-xs landscape:text-[10px]"
-          animate={config.pulse ? {
-            scale: [1, 1.1, 1],
-          } : {}}
-          transition={{
-            duration: 1,
-            repeat: config.pulse ? Infinity : 0
-          }}
+        <div
+          className={`${config.color} text-white px-2 py-[3px] flex items-center justify-center gap-1 whitespace-nowrap`}
         >
-          {config.emoji}
-        </motion.span>
-        <span className="font-medium text-[11px] landscape:text-[9px]">
-          {config.text}
-        </span>
-        {config.pulse && (
-          <motion.div
-            className="w-1 h-1 bg-white rounded-full flex-shrink-0"
-            animate={{
-              scale: [1, 1.5, 1],
-              opacity: [1, 0.5, 1]
-            }}
-            transition={{
-              duration: 1,
-              repeat: Infinity
-            }}
-          />
-        )}
-      </div>
+          <span className="text-[10px]">{config.emoji}</span>
+          <span className="font-medium text-[10px]">{config.text}</span>
+          {config.pulse && (
+            <motion.div
+              className="w-1 h-1 bg-white rounded-full flex-shrink-0 ml-0.5"
+              animate={{ opacity: [1, 0.3, 1] }}
+              transition={{ duration: 0.8, repeat: Infinity }}
+            />
+          )}
+        </div>
+      </motion.div>
 
-      {/* Versión desktop - diseño original */}
-      <div
-        className={`${config.color} text-white px-8 py-4 rounded-full shadow-2xl hidden sm:flex items-center gap-4`}
+      {/* Versión desktop - badge flotante centrado (solo md: y arriba) */}
+      <motion.div
+        className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 hidden md:block"
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, type: 'spring' }}
       >
-        <motion.span
-          className="text-3xl"
-          animate={config.pulse ? {
-            scale: [1, 1.2, 1],
-            rotate: [0, 10, -10, 0]
-          } : {}}
-          transition={{
-            duration: 1.5,
-            repeat: config.pulse ? Infinity : 0
-          }}
+        <div
+          className={`${config.color} text-white px-8 py-4 rounded-full shadow-2xl flex items-center gap-4`}
         >
-          {config.emoji}
-        </motion.span>
-        <span className="font-bold text-lg">
-          {config.text}
-        </span>
-        {config.pulse && (
-          <motion.div
-            className="w-3 h-3 bg-white rounded-full"
-            animate={{
-              scale: [1, 1.5, 1],
-              opacity: [1, 0.5, 1]
-            }}
+          <motion.span
+            className="text-3xl"
+            animate={config.pulse ? {
+              scale: [1, 1.2, 1],
+              rotate: [0, 10, -10, 0]
+            } : {}}
             transition={{
-              duration: 1,
-              repeat: Infinity
+              duration: 1.5,
+              repeat: config.pulse ? Infinity : 0
             }}
-          />
-        )}
-      </div>
-    </motion.div>
+          >
+            {config.emoji}
+          </motion.span>
+          <span className="font-bold text-lg">
+            {config.text}
+          </span>
+          {config.pulse && (
+            <motion.div
+              className="w-3 h-3 bg-white rounded-full"
+              animate={{
+                scale: [1, 1.5, 1],
+                opacity: [1, 0.5, 1]
+              }}
+              transition={{
+                duration: 1,
+                repeat: Infinity
+              }}
+            />
+          )}
+        </div>
+      </motion.div>
+    </>
   );
 };
