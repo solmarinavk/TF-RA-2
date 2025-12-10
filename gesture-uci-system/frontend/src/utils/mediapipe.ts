@@ -28,7 +28,6 @@ export const HAND_LANDMARKER_CONFIG: MediaPipeConfig = {
 
 /**
  * Configuración por defecto para PoseLandmarker
- * Valores bajos de confidence para mejor detección en móvil
  */
 export const getPoseLandmarkerOptions = () => ({
   baseOptions: {
@@ -37,14 +36,13 @@ export const getPoseLandmarkerOptions = () => ({
   },
   runningMode: POSE_LANDMARKER_CONFIG.runningMode,
   numPoses: 1,
-  minPoseDetectionConfidence: 0.3,
-  minPosePresenceConfidence: 0.3,
-  minTrackingConfidence: 0.3
+  minPoseDetectionConfidence: 0.5,
+  minPosePresenceConfidence: 0.5,
+  minTrackingConfidence: 0.5
 });
 
 /**
  * Configuración por defecto para HandLandmarker
- * Valores bajos de confidence para mejor detección en móvil
  */
 export const getHandLandmarkerOptions = () => ({
   baseOptions: {
@@ -53,9 +51,9 @@ export const getHandLandmarkerOptions = () => ({
   },
   runningMode: HAND_LANDMARKER_CONFIG.runningMode,
   numHands: 2,
-  minHandDetectionConfidence: 0.3,
-  minHandPresenceConfidence: 0.3,
-  minTrackingConfidence: 0.3
+  minHandDetectionConfidence: 0.5,
+  minHandPresenceConfidence: 0.5,
+  minTrackingConfidence: 0.5
 });
 
 /**
