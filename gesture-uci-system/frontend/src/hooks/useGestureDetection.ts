@@ -4,6 +4,15 @@ import { PoseLandmark, HandLandmark } from '@/types';
 import { detectLPose, isThumbsUp } from '@/utils/geometry';
 import { useAppStore } from '@/store/useAppStore';
 
+// Detectar si es móvil para usar ángulo más estricto
+const isMobile = () => {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 768;
+};
+
+// En móvil usamos tolerancia de 20° (muy estricto), en desktop 35°
+const getAngleTolerance = () => isMobile() ? 20 : 35;
+
 /**
  * Hook que detecta gestos de brazo en L para control del sistema
  * - Brazo IZQUIERDO en L (completamente visible) → Iniciar grabación
@@ -77,7 +86,9 @@ export function useGestureDetection(
 
           // Analizar gestos de brazos en L
           if (poseLandmarks) {
-            const lPoseStatus = detectLPose(poseLandmarks);
+            // En móvil usar tolerancia más estricta (20° vs 35° en desktop)
+            const tolerance = getAngleTolerance();
+            const lPoseStatus = detectLPose(poseLandmarks, tolerance);
 
             // Detectar si la mano derecha está haciendo pulgar arriba (👍)
             const rightHandThumbsUp = isThumbsUp(rightHand);
@@ -87,12 +98,14 @@ export function useGestureDetection(
             if (now - lastLogTimeRef.current > 500) {
               lastLogTimeRef.current = now;
 
+              const mobile = isMobile();
               console.log('🔍 ÁNGULOS DETECTADOS:', {
+                dispositivo: mobile ? '📱 MÓVIL (estricto)' : '🖥️ DESKTOP',
                 brazoIzq: lPoseStatus.leftAngle ? `${lPoseStatus.leftAngle.toFixed(1)}° ${lPoseStatus.left ? '✅ EN L' : ''}` : 'no visible',
-                brazoIzqVisible: lPoseStatus.leftVisibleInFrame ? '✅ visible en pantalla' : '❌ fuera de pantalla',
+                brazoIzqVisible: lPoseStatus.leftVisibleInFrame ? '✅ visible' : '❌ fuera',
                 brazoDer: lPoseStatus.rightAngle ? `${lPoseStatus.rightAngle.toFixed(1)}° ${lPoseStatus.right ? '✅ EN L' : ''}` : 'no visible',
                 manoDer: rightHandThumbsUp ? '👍 PULGAR ARRIBA' : '✋ sin thumbs up',
-                tolerancia: '55-125°'
+                tolerancia: mobile ? '70-110° (estricto)' : '55-125°'
               });
             }
 

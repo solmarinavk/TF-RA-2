@@ -160,9 +160,10 @@ function isArmVisibleInFrame(
 /**
  * Detecta ambos brazos en postura L
  * @param landmarks - Array de pose landmarks
+ * @param customTolerance - Tolerancia de ángulo personalizada (opcional, para móvil usar valor más estricto)
  * @returns Objeto con estado de cada brazo y si está visible en pantalla
  */
-export function detectLPose(landmarks: PoseLandmark[]): {
+export function detectLPose(landmarks: PoseLandmark[], customTolerance?: number): {
   left: boolean;
   right: boolean;
   leftAngle: number | null;
@@ -170,6 +171,8 @@ export function detectLPose(landmarks: PoseLandmark[]): {
   leftVisibleInFrame: boolean;
   rightVisibleInFrame: boolean;
 } {
+  const tolerance = customTolerance ?? L_POSE_ANGLE_TOLERANCE;
+
   if (!landmarks || landmarks.length < 33) {
     return {
       left: false,
@@ -215,8 +218,8 @@ export function detectLPose(landmarks: PoseLandmark[]): {
   }
 
   return {
-    left: leftAngle !== null && Math.abs(leftAngle - 90) < L_POSE_ANGLE_TOLERANCE && leftVisibleInFrame,
-    right: rightAngle !== null && Math.abs(rightAngle - 90) < L_POSE_ANGLE_TOLERANCE,
+    left: leftAngle !== null && Math.abs(leftAngle - 90) < tolerance && leftVisibleInFrame,
+    right: rightAngle !== null && Math.abs(rightAngle - 90) < tolerance,
     leftAngle,
     rightAngle,
     leftVisibleInFrame,

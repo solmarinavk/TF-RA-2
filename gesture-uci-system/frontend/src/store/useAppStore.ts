@@ -9,8 +9,8 @@ const isMobile = () => {
   return window.innerWidth < 768;
 };
 
-// En móvil usamos 3 segundos, en desktop 2 segundos
-const getGestureDuration = () => isMobile() ? 3000 : L_POSE_DURATION;
+// En móvil usamos 4 segundos para evitar activaciones accidentales, en desktop 2 segundos
+const getGestureDuration = () => isMobile() ? 4000 : L_POSE_DURATION;
 
 interface AppState {
   // === SISTEMA FSM ===
