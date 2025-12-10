@@ -10,8 +10,8 @@ const isMobile = () => {
   return window.innerWidth < 768;
 };
 
-// En móvil usamos tolerancia de 20° (muy estricto), en desktop 35°
-const getAngleTolerance = () => isMobile() ? 20 : 35;
+// En móvil usamos tolerancia de 25° (balance), en desktop 35°
+const getAngleTolerance = () => isMobile() ? 25 : 35;
 
 /**
  * Hook que detecta gestos de brazo en L para control del sistema
@@ -105,7 +105,7 @@ export function useGestureDetection(
                 brazoIzqVisible: lPoseStatus.leftVisibleInFrame ? '✅ visible' : '❌ fuera',
                 brazoDer: lPoseStatus.rightAngle ? `${lPoseStatus.rightAngle.toFixed(1)}° ${lPoseStatus.right ? '✅ EN L' : ''}` : 'no visible',
                 manoDer: rightHandThumbsUp ? '👍 PULGAR ARRIBA' : '✋ sin thumbs up',
-                tolerancia: mobile ? '70-110° (estricto)' : '55-125°'
+                tolerancia: mobile ? '65-115° (móvil)' : '55-125°'
               });
             }
 
