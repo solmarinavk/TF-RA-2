@@ -47,14 +47,14 @@ export const StateIndicator: React.FC<StateIndicatorProps> = ({ state }) => {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, type: 'spring' }}
     >
-      {/* Versión móvil - barra delgada full width */}
+      {/* Versión móvil - barra delgada full width con texto completo en una línea */}
       <div
-        className={`${config.color} text-white px-3 py-1.5 landscape:py-1 sm:hidden flex items-center justify-center gap-2`}
+        className={`${config.color} text-white px-2 py-1 landscape:py-0.5 sm:hidden flex items-center justify-center gap-1.5 whitespace-nowrap`}
       >
         <motion.span
-          className="text-sm landscape:text-xs"
+          className="text-xs landscape:text-[10px]"
           animate={config.pulse ? {
-            scale: [1, 1.15, 1],
+            scale: [1, 1.1, 1],
           } : {}}
           transition={{
             duration: 1,
@@ -63,12 +63,12 @@ export const StateIndicator: React.FC<StateIndicatorProps> = ({ state }) => {
         >
           {config.emoji}
         </motion.span>
-        <span className="font-semibold text-xs landscape:text-[10px]">
-          {config.shortText}
+        <span className="font-medium text-[11px] landscape:text-[9px]">
+          {config.text}
         </span>
         {config.pulse && (
           <motion.div
-            className="w-1.5 h-1.5 bg-white rounded-full"
+            className="w-1 h-1 bg-white rounded-full flex-shrink-0"
             animate={{
               scale: [1, 1.5, 1],
               opacity: [1, 0.5, 1]
